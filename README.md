@@ -14,13 +14,13 @@
 </p>
 
 <h1 align="center">
-Vitest
+Faster
 </h1>
 <p align="center">
-Next generation testing framework powered by Vite.
+An API-compatible Vitest fork with built-in FAST test prioritization and immediate failure feedback.
 <p>
 <p align="center">
-  <a href="https://npmx.dev/package/vitest"><img src="https://img.shields.io/npm/v/vitest?color=729B1B&label=" alt="current vitest version badge"></a>
+  <a href="https://npmx.dev/package/faster"><img src="https://img.shields.io/npm/v/faster?color=729B1B&label=" alt="current Faster version badge"></a>
 <p>
 
 <p align="center">
@@ -41,6 +41,11 @@ Next generation testing framework powered by Vite.
 
 ## Features
 
+- Changed source files are mapped transitively to dependent tests and scheduled first.
+- A built-in deterministic FAST-pw-style MinHash order prioritizes both affected tests and the remaining suite.
+- Optional `.faster/priorities.json` scores override the built-in order when richer producer signals are available.
+- Failures, captured output, diffs, and stacks are printed as soon as each failing test finishes.
+- Vitest's public test, config, plugin, reporter, and CLI APIs remain available for low-friction migration.
 - [Vite](https://vitejs.dev/)'s config, transformers, resolvers, and plugins. Use the same setup from your app!
 - [Jest Snapshot](https://jestjs.io/docs/snapshot-testing)
 - [Chai](https://www.chaijs.com/) built-in for assertions, with [Jest expect](https://jestjs.io/docs/expect) compatible APIs
@@ -63,7 +68,7 @@ Next generation testing framework powered by Vite.
 > Vitest requires Vite >=v6.0.0 and Node >=v20.0.0
 
 ```ts
-import { assert, describe, expect, it } from 'vitest'
+import { assert, describe, expect, it } from 'faster'
 
 describe('suite name', () => {
   it('foo', () => {
@@ -82,8 +87,10 @@ describe('suite name', () => {
 ```
 
 ```bash
-$ npx vitest
+$ npx faster
 ```
+
+The package also exposes a `vitest` binary alias. Existing Vitest configuration and test files continue to work while you migrate imports incrementally.
 
 ## Sponsors
 

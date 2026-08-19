@@ -1,12 +1,10 @@
 import type { Vitest } from './core'
-import type { TestProject } from './project'
 import type { TestSpecification } from './test-specification'
-import { existsSync } from 'node:fs'
-import { join, relative, resolve } from 'pathe'
+import { relative, resolve } from 'pathe'
 import pm from 'picomatch'
-import { isWindows } from '../utils/env'
 import { groupFilters, parseFilter } from './cli/filter'
 import { IncludeTaskLocationDisabledError, LocationFilterFileNotFoundError } from './errors'
+import { findAffectedTestSpecifications } from './faster/affectedTests'
 
 export class VitestSpecifications {
   private readonly _cachedSpecs = new Map<string, TestSpecification[]>()
@@ -145,51 +143,7 @@ export class VitestSpecifications {
       return []
     }
 
-    const testGraphs = await Promise.all(
-      specs.map(async (spec) => {
-        const deps = await this.getTestDependencies(spec)
-        return [spec, deps] as const
-      }),
-    )
-
-    const runningTests: TestSpecification[] = []
-
-    for (const [specification, deps] of testGraphs) {
-      // if deps or the test itself were changed
-      if (related.some(path => path === specification.moduleId || deps.has(path))) {
-        runningTests.push(specification)
-      }
-    }
-
-    return runningTests
-  }
-
-  private async getTestDependencies(spec: TestSpecification, deps = new Set<string>()): Promise<Set<string>> {
-    const addImports = async (project: TestProject, filepath: string) => {
-      if (deps.has(filepath)) {
-        return
-      }
-      deps.add(filepath)
-
-      const mod = project.vite.environments.ssr.moduleGraph.getModuleById(filepath)
-      const transformed = mod?.transformResult || await project.vite.environments.ssr.transformRequest(filepath)
-      if (!transformed) {
-        return
-      }
-      const dependencies = [...transformed.deps || [], ...transformed.dynamicDeps || []]
-      await Promise.all(dependencies.map(async (dep) => {
-        const fsPath = dep.startsWith('/@fs/')
-          ? dep.slice(isWindows ? 5 : 4)
-          : join(project.config.root, dep)
-        if (!fsPath.includes('node_modules') && !deps.has(fsPath) && existsSync(fsPath)) {
-          await addImports(project, fsPath)
-        }
-      }))
-    }
-
-    await addImports(spec.project, spec.moduleId)
-    deps.delete(spec.moduleId)
-
-    return deps
+    const affected = await findAffectedTestSpecifications(specs, related)
+    return specs.filter(specification => affected.has(specification))
   }
 }

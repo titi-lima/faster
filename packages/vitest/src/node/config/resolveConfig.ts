@@ -25,8 +25,10 @@ import {
 import { benchmarkConfigDefaults, configDefaults } from '../../defaults'
 import { isAgent, isCI, stdProvider } from '../../utils/env'
 import { getWorkersCountByPercentage } from '../../utils/workers'
+import { resolveFasterOptions } from '../faster/priorityManifest'
 import { withLabel } from '../reporters/renderers/utils'
 import { BaseSequencer } from '../sequencers/BaseSequencer'
+import { FasterSequencer } from '../sequencers/FasterSequencer'
 import { RandomSequencer } from '../sequencers/RandomSequencer'
 
 function resolvePath(path: string, root: string) {
@@ -175,6 +177,8 @@ export function resolveConfig(
     root: viteConfig.root,
     mode,
   } as any as ResolvedConfig
+
+  resolved.faster = resolveFasterOptions(viteConfig.root, options.faster)
 
   if (resolved.retry && typeof resolved.retry === 'object' && typeof resolved.retry.condition === 'function') {
     logger.console.warn(
@@ -790,6 +794,12 @@ export function resolveConfig(
     resolved.sequence.sequencer = resolved.sequence.shuffle
       ? RandomSequencer
       : BaseSequencer
+  }
+  if (
+    resolved.faster.enabled
+    && !options.sequence?.sequencer
+  ) {
+    resolved.sequence.sequencer = FasterSequencer
   }
   resolved.sequence.groupOrder ??= 0
   resolved.sequence.hooks ??= 'stack'

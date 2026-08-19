@@ -9,6 +9,13 @@ export {
   someTasksAreOnly,
 } from './collect'
 export { limitConcurrency } from './limit-concurrency'
+export {
+  getSimilarityOrder,
+  getTaskPriority,
+  getTaskPriorityId,
+  prioritizeTasks,
+  type TestPriorityMap,
+} from './priority'
 export { partitionSuiteChildren } from './suite'
 export { createTagsFilter, matchesTags, validateTags } from './tags'
 export {

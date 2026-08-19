@@ -1,6 +1,7 @@
 import type { FakeTimerInstallOpts } from '@sinonjs/fake-timers'
 import type { PrettyFormatOptions } from '@vitest/pretty-format'
 import type { SequenceHooks, SequenceSetupFiles, SerializableRetry, TestTagDefinition } from '@vitest/runner'
+import type { TestPriorityMap } from '@vitest/runner/utils'
 import type { SnapshotEnvironment, SnapshotUpdateState } from '@vitest/snapshot'
 import type { SerializedDiffOptions } from '@vitest/utils/diff'
 import type { LabelColor } from '../types/general'
@@ -46,11 +47,13 @@ export interface SerializedConfig {
   }
   printConsoleTrace: boolean | undefined
   sequence: {
+    faster?: boolean
     shuffle?: boolean
     concurrent?: boolean
     seed: number
     hooks: SequenceHooks
     setupFiles: SequenceSetupFiles
+    priorities?: TestPriorityMap
   }
   deps: {
     web: {

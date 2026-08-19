@@ -513,6 +513,34 @@ Allow tests and suites that are marked as only (default: `!process.env.CI`)
 
 Ignore any unhandled errors that occur
 
+### faster.enabled
+
+- **CLI:** `--faster.enabled`
+- **Config:** [faster.enabled](/config/faster#faster-enabled)
+
+Enable Faster prioritization (default: true)
+
+### faster.changed
+
+- **CLI:** `--faster.changed [since]`
+- **Config:** [faster.changed](/config/faster#faster-changed)
+
+Prioritize tests affected by local changes, optionally since a Git revision (default: true)
+
+### faster.priorityFile
+
+- **CLI:** `--faster.priorityFile <path>`
+- **Config:** [faster.priorityFile](/config/faster#faster-priorityfile)
+
+Path to the FAST priority manifest (default: .faster/priorities.json)
+
+### faster.immediateFailureOutput
+
+- **CLI:** `--faster.immediateFailureOutput`
+- **Config:** [faster.immediateFailureOutput](/config/faster#faster-immediatefailureoutput)
+
+Print a failing test and its output as soon as it finishes (default: true)
+
 ### sequence.shuffle.files
 
 - **CLI:** `--sequence.shuffle.files`

@@ -30,6 +30,7 @@ import { getAroundHookStackTrace, getAroundHookTimeout, getBeforeHookCleanupCall
 import { getFn, getHooks } from './map'
 import { addRunningTest, getRunningTests, setCurrentTest } from './test-state'
 import { limitConcurrency } from './utils/limit-concurrency'
+import { prioritizeTasks } from './utils/priority'
 import { partitionSuiteChildren } from './utils/suite'
 import { hasFailed, hasTests } from './utils/tasks'
 
@@ -897,6 +898,12 @@ export async function runSuite(suite: Suite, runner: VitestRunner): Promise<void
           }
           else {
             for (let tasksGroup of partitionSuiteChildren(suite)) {
+              tasksGroup = prioritizeTasks(
+                tasksGroup,
+                runner.config.root,
+                runner.config.sequence.priorities,
+                runner.config.sequence.faster,
+              )
               if (tasksGroup[0].concurrent === true) {
                 const groupLimiter = limitConcurrency(runner.config.maxConcurrency)
                 await Promise.all(tasksGroup.map(c => groupLimiter(() => runSuiteChild(c, runner))))

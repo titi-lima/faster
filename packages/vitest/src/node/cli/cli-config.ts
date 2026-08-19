@@ -495,6 +495,29 @@ export const cliOptionsConfig: VitestCLIOptions = {
       'Run tests that are affected by the changed files (default: `false`)',
     argument: '[since]',
   },
+  faster: {
+    description:
+      'Prioritize tests affected by source changes and scores from .faster/priorities.json; print failures immediately (default: true)',
+    argument: '',
+    transform: transformNestedBoolean,
+    subcommands: {
+      enabled: {
+        description: 'Enable Faster prioritization (default: true)',
+      },
+      changed: {
+        description: 'Prioritize tests affected by local changes, optionally since a Git revision (default: true)',
+        argument: '[since]',
+      },
+      priorityFile: {
+        description: 'Path to the FAST priority manifest (default: .faster/priorities.json)',
+        argument: '<path>',
+        normalize: true,
+      },
+      immediateFailureOutput: {
+        description: 'Print a failing test and its output as soon as it finishes (default: true)',
+      },
+    },
+  },
   sequence: {
     description: 'Options for how tests should be sorted',
     argument: '<options>',

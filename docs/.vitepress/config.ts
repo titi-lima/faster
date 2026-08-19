@@ -473,6 +473,10 @@ export default ({ mode }: { mode: string }) => {
                 link: '/config/sequence',
               },
               {
+                text: 'faster',
+                link: '/config/faster',
+              },
+              {
                 text: 'tags',
                 link: '/config/tags',
               },

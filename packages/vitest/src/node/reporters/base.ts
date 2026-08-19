@@ -54,6 +54,8 @@ export abstract class BaseReporter implements Reporter {
 
   private _filesInWatchMode = new Map<string, number>()
   private _timeStart = formatTimeString(new Date())
+  private immediatelyReportedTasks: WeakSet<Task> = new WeakSet()
+  private reportedConsoleLogs: WeakSet<UserConsoleLog> = new WeakSet()
 
   constructor(options: BaseOptions = {}) {
     this.isTTY = options.isTTY ?? isTTY
@@ -122,7 +124,25 @@ export abstract class BaseReporter implements Reporter {
   }
 
   protected logFailedTask(task: Task): void {
-    if (this.silent === 'passed-only') {
+    if (task.type !== 'test') {
+      return
+    }
+
+    const project = this.ctx.getProjectByName(task.file.projectName || '')
+
+    if (project.config.faster.immediateFailureOutput) {
+      for (const log of task.logs || []) {
+        if (!this.reportedConsoleLogs.has(log)) {
+          this.onUserConsoleLog(log, 'failed', true)
+        }
+      }
+
+      this.error(`\n${errorBanner('Failed Test')}\n`)
+      this.printTaskErrors([task], () => {})
+      this.error()
+      this.immediatelyReportedTasks.add(task)
+    }
+    else if (this.silent === 'passed-only') {
       for (const log of task.logs || []) {
         this.onUserConsoleLog(log, 'failed')
       }
@@ -445,10 +465,12 @@ export abstract class BaseReporter implements Reporter {
     }
   }
 
-  onUserConsoleLog(log: UserConsoleLog, taskState?: TestResult['state']): void {
-    if (!this.shouldLog(log, taskState)) {
+  onUserConsoleLog(log: UserConsoleLog, taskState?: TestResult['state'], force = false): void {
+    if (!force && !this.shouldLog(log, taskState)) {
       return
     }
+
+    this.reportedConsoleLogs.add(log)
 
     const output
       = log.type === 'stdout'
@@ -777,7 +799,9 @@ export abstract class BaseReporter implements Reporter {
     const tests = getTests(files)
 
     const failedSuites = suites.filter(i => i.result?.errors)
-    const failedTests = tests.filter(i => i.result?.state === 'fail')
+    const failedTests = tests.filter(i =>
+      i.result?.state === 'fail' && !this.immediatelyReportedTasks.has(i),
+    )
     const failedTotal = countTestErrors(failedSuites) + countTestErrors(failedTests)
 
     // TODO: error divider should take into account merged errors for counting
@@ -891,7 +915,7 @@ export abstract class BaseReporter implements Reporter {
     }
   }
 
-  private printTaskErrors(tasks: Task[], errorDivider: () => void) {
+  protected printTaskErrors(tasks: Task[], errorDivider: () => void): void {
     const errorsQueue: [error: TestError | undefined, tests: Task[]][] = []
 
     for (const task of tasks) {

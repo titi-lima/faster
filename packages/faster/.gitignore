@@ -1,0 +1,7 @@
+browser
+*.cjs
+*.cts
+*.d.ts
+*.mjs
+!scripts/
+!scripts/*.mjs

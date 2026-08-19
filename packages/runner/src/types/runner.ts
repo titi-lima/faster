@@ -1,4 +1,5 @@
 import type { DiffOptions } from '@vitest/utils/diff'
+import type { TestPriorityMap } from '../utils/priority'
 import type {
   File,
   ImportDuration,
@@ -27,11 +28,13 @@ export interface VitestRunnerConfig {
   testNamePattern: RegExp | undefined
   allowOnly: boolean
   sequence: {
+    faster?: boolean
     shuffle?: boolean
     concurrent?: boolean
     seed: number
     hooks: SequenceHooks
     setupFiles: SequenceSetupFiles
+    priorities?: TestPriorityMap
   }
   chaiConfig: {
     truncateThreshold?: number

@@ -84,11 +84,15 @@ export function serializeConfig(project: TestProject): SerializedConfig {
         ?? globalConfig.snapshotOptions.expand,
     },
     sequence: {
+      faster: config.faster.enabled,
       shuffle: globalConfig.sequence.shuffle,
       concurrent: globalConfig.sequence.concurrent,
       seed: globalConfig.sequence.seed,
       hooks: globalConfig.sequence.hooks,
       setupFiles: globalConfig.sequence.setupFiles,
+      priorities: Object.keys(config.faster.priorities).length
+        ? config.faster.priorities
+        : undefined,
     },
     inspect: globalConfig.inspect,
     inspectBrk: globalConfig.inspectBrk,
