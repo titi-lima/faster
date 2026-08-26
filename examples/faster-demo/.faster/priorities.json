@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "tests": {
+    "test/availability.test.ts::exposes a stable list for the storefront": 0.95,
+    "test/availability.test.ts::keeps product ids unique": 0.9,
+    "test/checkout.test.ts::checkout::keeps available products and calculates the total": 0.7,
+    "test/checkout.test.ts::checkout::skips products that are out of stock": 0.65,
+    "test/catalog.test.ts::catalog::calculates a cart total": 0.4,
+    "test/catalog.test.ts::catalog::finds a product by id": 0.3
+  }
+}

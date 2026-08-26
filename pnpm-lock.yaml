@@ -367,6 +367,18 @@ importers:
         specifier: workspace:*
         version: link:../../packages/vitest
 
+  examples/faster-demo:
+    devDependencies:
+      faster:
+        specifier: workspace:*
+        version: link:../../packages/faster
+      vite:
+        specifier: 7.1.5
+        version: 7.1.5(@types/node@24.12.0)(jiti@2.6.1)(lightningcss@1.31.1)(sass-embedded@1.97.3)(sass@1.97.3)(terser@5.44.1)(tsx@4.21.0)(yaml@2.8.2)
+      vitest:
+        specifier: workspace:*
+        version: link:../../packages/vitest
+
   examples/fastify:
     devDependencies:
       '@vitest/ui':

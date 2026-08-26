@@ -1,0 +1,17 @@
+{
+  "name": "@vitest/example-faster-demo",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "faster run",
+    "test:watch": "faster",
+    "test:vitest": "faster run --no-faster",
+    "demo:order": "faster run",
+    "demo:failure": "FASTER_DEMO_FAIL=1 faster run test/failure-demo.test.ts"
+  },
+  "devDependencies": {
+    "faster": "workspace:*",
+    "vite": "7.1.5",
+    "vitest": "workspace:*"
+  }
+}
