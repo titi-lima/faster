@@ -3,10 +3,10 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "types": ["node", "vitest"],
     "strict": true,
     "verbatimModuleSyntax": true,
-    "skipLibCheck": true,
-    "types": ["node", "vitest"]
+    "skipLibCheck": true
   },
   "include": ["src", "test", "demo-reporter.ts", "vite.config.ts"]
 }

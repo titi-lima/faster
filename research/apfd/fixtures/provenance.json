@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "policy": "direct-blend-0.1",
+  "cases": 93,
+  "testFileObservations": 2449,
+  "format": "One JSON object per case; order and fault indices refer to features.files",
+  "fixtureSHA256": "91115799527f1ffe50593fd2bb38694e89fcabd6cace4b6fdd1115cad21df01e",
+  "sourceArtifacts": {
+    "greca22-apfd-hillclimb/inputs.json": "a0eb405a89cb5686866fb690b016b11b87407ff11dd0f9f859a7b85e83ed14bc",
+    "greca22-apfd-hillclimb/orders.json": "40fd08a13d41ccfb71309dfab2e13342c726097bccddc3a63ae93151c6723f97",
+    "greca22-unit-study/replay.json": "9311f5b7f7b98571718c2f570297e328dc97db3c65bdecbe4507687830e79192",
+    "greca22-paper-comparison/replay.json": "f6195db92704f2fc810ded1414b0ab9c4605ef0db5d3311578e8fa692062280f",
+    "greca22-apfd-hillclimb/protocol.json": "bad4c5a6a551c43abc4f1a84cffd13c3c1042481d3b3e3ebee36f9bcfd03a8b2",
+    "greca22-apfd-hillclimb/meeting-summary.json": "299b429ddbe3ac8abff60c00a483b6fc741e573102cde184df99f463ea0b905d"
+  }
+}

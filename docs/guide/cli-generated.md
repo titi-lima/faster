@@ -520,12 +520,19 @@ Ignore any unhandled errors that occur
 
 Enable Faster prioritization (default: true)
 
+### faster.optimizeFor
+
+- **CLI:** `--faster.optimizeFor <dx|apfd>`
+- **Config:** [faster.optimizeFor](/config/faster#faster-optimizefor)
+
+Ordering objective: dx uses affected-first FAST; apfd prioritizes failures and edited/new tests with history/breadth ranking (default: dx)
+
 ### faster.changed
 
 - **CLI:** `--faster.changed [since]`
 - **Config:** [faster.changed](/config/faster#faster-changed)
 
-Prioritize tests affected by local changes, optionally since a Git revision (default: true)
+Prioritize tests affected since the previous test run, optionally also since a Git revision (default: true)
 
 ### faster.priorityFile
 
