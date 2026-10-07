@@ -497,15 +497,19 @@ export const cliOptionsConfig: VitestCLIOptions = {
   },
   faster: {
     description:
-      'Prioritize tests affected by source changes and scores from .faster/priorities.json; print failures immediately (default: true)',
+      'Prioritize tests using source/failure buckets and FAST similarity; APFD mode adds edited/new tests and history/breadth signals (with optional .faster/priorities.json scores); print failures immediately (default: true)',
     argument: '',
     transform: transformNestedBoolean,
     subcommands: {
       enabled: {
         description: 'Enable Faster prioritization (default: true)',
       },
+      optimizeFor: {
+        description: 'Ordering objective: dx uses affected-first FAST; apfd prioritizes failures and edited/new tests with history/breadth ranking (default: dx)',
+        argument: '<dx|apfd>',
+      },
       changed: {
-        description: 'Prioritize tests affected by local changes, optionally since a Git revision (default: true)',
+        description: 'Prioritize tests affected since the previous test run, optionally also since a Git revision (default: true)',
         argument: '[since]',
       },
       priorityFile: {

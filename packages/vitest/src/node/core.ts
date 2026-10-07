@@ -38,6 +38,7 @@ import { getCoverageProvider } from './coverage'
 import { createFetchModuleFunction } from './environments/fetchModule'
 import { ServerModuleRunner } from './environments/serverRunner'
 import { FilesNotFoundError } from './errors'
+import { captureTestRunSourceSnapshots, clearFasterSourceSnapshots, saveTestRunSourceSnapshots } from './faster/sourceChanges'
 import { Logger } from './logger'
 import { collectModuleDurationsDiagnostic, collectSourceModulesLocations } from './module-diagnostic'
 import { VitestPackageInstaller } from './packageInstaller'
@@ -600,6 +601,7 @@ export class Vitest {
    */
   public async experimental_clearCache(): Promise<void> {
     await this.cache.results.clearCache()
+    await clearFasterSourceSnapshots(this)
     await this._fsCache.clearCache()
   }
 
@@ -954,6 +956,9 @@ export class Vitest {
 
           await this.initializeGlobalSetup(specs)
 
+          const sourceSnapshots = await captureTestRunSourceSnapshots(this, specs).catch(() => new Map())
+          const previousFiles = new Set(this.state.getFiles())
+
           try {
             await this.pool.runTests(specs, invalidates)
           }
@@ -964,6 +969,12 @@ export class Vitest {
           const files = this.state.getFiles()
 
           this.cache.results.updateResults(files)
+          try {
+            if (!this.isCancelling) {
+              await saveTestRunSourceSnapshots(this, sourceSnapshots, files.filter(file => !previousFiles.has(file)))
+            }
+          }
+          catch {}
           try {
             await this.cache.results.writeToCache()
           }

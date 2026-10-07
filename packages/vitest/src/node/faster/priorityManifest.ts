@@ -17,18 +17,32 @@ export interface FasterPriorityManifest {
 export interface FasterOptions {
   enabled?: boolean
   /**
-   * Put tests affected by local source changes ahead of the remaining suite.
-   * A string is treated as a Git revision and includes committed changes since it.
+   * In APFD mode, prioritize cached failures, edited/new tests, then affected
+   * tests, using prior duration and source breadth before FAST tie-breaking.
+   * This is a heuristic, not a guarantee of optimal APFD.
+   *
+   * @default 'dx'
+   */
+  optimizeFor?: 'dx' | 'apfd'
+  /**
+   * Put tests affected by source changes since the previous completed test run
+   * ahead of the remaining suite. A string also includes changes since that
+   * Git revision.
    *
    * @default true
    */
   changed?: boolean | string
+  /**
+   * Optional producer scores within each scheduling bucket. Equal scores and
+   * unscored files use the selected objective, with FAST breaking remaining ties.
+   */
   priorityFile?: string
   immediateFailureOutput?: boolean
 }
 
 export interface ResolvedFasterOptions {
   enabled: boolean
+  optimizeFor: 'dx' | 'apfd'
   changed: boolean | string
   priorityFile: string
   immediateFailureOutput: boolean
@@ -40,6 +54,10 @@ export function resolveFasterOptions(
   options: boolean | FasterOptions | undefined,
 ): ResolvedFasterOptions {
   const normalized = typeof options === 'object' ? options : {}
+  const optimizeFor = normalized.optimizeFor ?? 'dx'
+  if (optimizeFor !== 'dx' && optimizeFor !== 'apfd') {
+    throw new TypeError(`Invalid faster.optimizeFor: expected "dx" or "apfd", received "${optimizeFor}".`)
+  }
   const enabled = typeof options === 'boolean'
     ? options
     : normalized.enabled ?? true
@@ -50,6 +68,7 @@ export function resolveFasterOptions(
 
   return {
     enabled,
+    optimizeFor,
     changed: normalized.changed ?? true,
     priorityFile,
     immediateFailureOutput: normalized.immediateFailureOutput ?? true,

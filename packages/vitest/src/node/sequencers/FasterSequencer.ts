@@ -1,90 +1,162 @@
+import type { FasterSourceChange } from '../faster/sourceChanges'
 import type { TestSpecification } from '../test-specification'
 import { readFile } from 'node:fs/promises'
 import { getSimilarityOrder } from '@vitest/runner/utils'
-import { relative } from 'pathe'
+import { relative, resolve } from 'pathe'
 import { GitNotFoundError } from '../errors'
 import { findAffectedTestSpecifications } from '../faster/affectedTests'
+import { getApfdPriorityScores } from '../faster/apfdPriority'
+import { getTestSourceChanges } from '../faster/sourceChanges'
 import { BaseSequencer } from './BaseSequencer'
+
+interface SchedulingGroup {
+  enabled: boolean
+  apfd: boolean
+  files: TestSpecification[]
+  buckets: TestSpecification[][]
+}
 
 export class FasterSequencer extends BaseSequencer {
   public async sort(files: TestSpecification[]): Promise<TestSpecification[]> {
-    const baseline = await super.sort(files)
-    const baselineIndex = new Map(baseline.map((file, index) => [file, index]))
-    const affected = await this.findAffectedSpecifications(baseline)
-    const priorities = getFilePriorities(baseline)
-    const fallbackPriorities = await getFallbackFilePriorities(baseline, priorities)
-
-    return baseline.sort((left, right) => {
-      if (left.project !== right.project) {
-        return baselineIndex.get(left)! - baselineIndex.get(right)!
+    if (files.length < 2) {
+      return [...files]
+    }
+    const specifications = [...files].sort(compareSpecifications)
+    const enabled = specifications.filter(specification => specification.project.config.faster.enabled)
+    if (!enabled.length) {
+      return super.sort(specifications)
+    }
+    const [fast, buckets] = await Promise.all([
+      getFastFileOrder(enabled),
+      this.getSchedulingBuckets(specifications),
+    ])
+    for (const specification of fast.ordered) {
+      buckets.bySpecification.get(specification)!.push(specification)
+    }
+    for (const group of buckets.groups) {
+      if (!group.enabled) {
+        group.buckets = [await super.sort(group.files)]
+        continue
       }
-
-      const affectedDiff = Number(affected.has(right)) - Number(affected.has(left))
-      if (affectedDiff !== 0) {
-        return affectedDiff
+      if (!group.apfd) {
+        continue
       }
-
-      const leftPriority = priorities.get(left)
-      const rightPriority = priorities.get(right)
-
-      if (leftPriority == null && rightPriority == null) {
-        return fallbackPriorities.get(right)! - fallbackPriorities.get(left)!
-          || baselineIndex.get(left)! - baselineIndex.get(right)!
+      const scores = getApfdPriorityScores(group.files.map(specification => ({
+        bytes: fast.bytes.get(specification)!,
+        duration: this.ctx.cache.getFileTestResults(getResultKey(this.ctx.config.root, specification))?.duration,
+      })))
+      const priorities = new Map(group.files.map((specification, index) => [specification, scores[index]]))
+      for (const bucket of group.buckets) {
+        bucket.sort((left, right) => comparePriorities(fast.priorities, left, right)
+          || priorities.get(right)! - priorities.get(left)!)
       }
-      if (leftPriority == null) {
-        return 1
-      }
-      if (rightPriority == null) {
-        return -1
-      }
-      return rightPriority - leftPriority
-        || baselineIndex.get(left)! - baselineIndex.get(right)!
-    })
+    }
+    return buckets.groups.flatMap(group => group.buckets.flat())
   }
 
-  private async findAffectedSpecifications(files: TestSpecification[]): Promise<Set<TestSpecification>> {
-    const changed = this.ctx.config.faster.changed
-    if (!changed) {
-      return new Set()
-    }
-    if (this.ctx.config.changed || this.ctx.config.related) {
-      return new Set(files)
-    }
-
-    try {
-      const changedFiles = await this.ctx.vcs.findChangedFiles({
-        root: this.ctx.config.root,
-        changedSince: changed,
-      })
-      return findAffectedTestSpecifications(files, changedFiles)
-    }
-    catch (error) {
-      if (error instanceof GitNotFoundError) {
-        return new Set()
+  private async getSchedulingBuckets(files: TestSpecification[]) {
+    const tracked = files.filter(specification => specification.project.config.faster.enabled && specification.project.config.faster.changed)
+    const changes = tracked.length
+      ? await getTestSourceChanges(this.ctx, tracked)
+      : new Map<TestSpecification, FasterSourceChange>()
+    await this.includeRevisionChanges(tracked, changes)
+    const groups: SchedulingGroup[] = []
+    const bySpecification = new Map<TestSpecification, TestSpecification[]>()
+    let previousProject: TestSpecification['project'] | undefined
+    let group: SchedulingGroup
+    for (const specification of files) {
+      if (specification.project !== previousProject) {
+        const apfd = specification.project.config.faster.optimizeFor === 'apfd'
+        group = { enabled: specification.project.config.faster.enabled, apfd, files: [], buckets: Array.from({ length: apfd ? 6 : 4 }, () => []) }
+        groups.push(group)
+        previousProject = specification.project
       }
-      throw error
+      group!.files.push(specification)
+      const key = getResultKey(this.ctx.config.root, specification)
+      const failed = Boolean(this.ctx.cache.getFileTestResults(key)?.failed)
+      const change = changes.get(specification)
+      const changed = Boolean(change?.changed)
+      const direct = Boolean(change && (!change.known || change.testChanged))
+      const bucket = specification.project.config.faster.optimizeFor === 'apfd'
+        ? Number(!failed) * 3 + (direct ? 0 : changed ? 1 : 2)
+        : Number(!changed) * 2 + Number(!failed)
+      bySpecification.set(specification, group!.buckets[bucket])
+    }
+    return { groups, bySpecification }
+  }
+
+  private async includeRevisionChanges(files: TestSpecification[], changes: Map<TestSpecification, FasterSourceChange>) {
+    const revisions = new Map<string, TestSpecification[]>()
+    for (const specification of files) {
+      const revision = specification.project.config.faster.changed
+      if (typeof revision === 'string') {
+        const group = revisions.get(revision) || []
+        group.push(specification)
+        revisions.set(revision, group)
+      }
+    }
+    for (const [revision, specifications] of revisions) {
+      try {
+        const paths = await this.ctx.vcs.findChangedFiles({ root: this.ctx.config.root, changedSince: revision })
+        const changed = new Set(paths.map(path => resolve(path)))
+        const affected = await findAffectedTestSpecifications(specifications, changed)
+        for (const specification of specifications) {
+          const change = changes.get(specification)!
+          change.changed ||= affected.has(specification)
+          change.testChanged ||= changed.has(resolve(specification.moduleId))
+        }
+      }
+      catch (error) {
+        if (!(error instanceof GitNotFoundError)) {
+          throw error
+        }
+      }
     }
   }
 }
 
-async function getFallbackFilePriorities(
-  specifications: TestSpecification[],
-  priorities: Map<TestSpecification, number | undefined>,
-): Promise<Map<TestSpecification, number>> {
-  const unscored = specifications.filter(specification => priorities.get(specification) == null)
-  const sources = await Promise.all(unscored.map(async (specification) => {
+function compareSpecifications(left: TestSpecification, right: TestSpecification): number {
+  const groupOrder = left.project.config.sequence.groupOrder - right.project.config.sequence.groupOrder
+  if (groupOrder !== 0) {
+    return groupOrder
+  }
+  if (left.project.name !== right.project.name) {
+    return left.project.name < right.project.name ? -1 : 1
+  }
+  const isolation = Number(right.project.config.isolate) - Number(left.project.config.isolate)
+  return isolation || (left.moduleId < right.moduleId ? -1 : left.moduleId > right.moduleId ? 1 : 0)
+}
+
+function getResultKey(root: string, specification: TestSpecification): string {
+  return `${specification.project.name}:${relative(root, specification.moduleId)}`
+}
+
+async function getFastFileOrder(specifications: TestSpecification[]) {
+  const sources = await Promise.all(specifications.map(async (specification) => {
     try {
-      return await readFile(specification.moduleId, 'utf8')
+      const contents = await readFile(specification.moduleId)
+      return { text: contents.toString('utf8'), bytes: contents.byteLength }
     }
     catch {
-      return specification.moduleId
+      return { text: specification.moduleId, bytes: 0 }
     }
   }))
-  const ordered = getSimilarityOrder(sources)
-  return new Map(ordered.map((sourceIndex, orderIndex) => [
-    unscored[sourceIndex],
-    unscored.length - orderIndex,
-  ]))
+  const ordered = getSimilarityOrder(sources.map(source => source.text)).map(index => specifications[index])
+  const priorities = getFilePriorities(specifications)
+  if (ordered.some(specification => priorities.get(specification) != null)) {
+    ordered.sort((left, right) => comparePriorities(priorities, left, right))
+  }
+  const bytes = new Map(specifications.map((specification, index) => [specification, sources[index].bytes]))
+  return { ordered, priorities, bytes }
+}
+
+function comparePriorities(priorities: Map<TestSpecification, number | undefined>, left: TestSpecification, right: TestSpecification): number {
+  const a = priorities.get(left)
+  const b = priorities.get(right)
+  if (a == null) {
+    return b == null ? 0 : 1
+  }
+  return b == null ? -1 : b - a
 }
 
 function getFilePriorities(specifications: TestSpecification[]): Map<TestSpecification, number | undefined> {

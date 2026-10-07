@@ -11,14 +11,14 @@ outline: deep
 
 Enables Faster's built-in test prioritization and immediate failure feedback. Faster keeps the Vitest API and configuration surface intact; this option is the only additional behavior.
 
-Faster schedules tests in two buckets:
+With the default `optimizeFor: 'dx'`, Faster schedules files in two buckets:
 
-1. Test files that transitively depend on locally changed source files.
+1. Test files affected by source changes since the previous completed test run.
 2. The remaining test files.
 
-Within both buckets, Faster uses a deterministic FAST-pw-style MinHash order. Test files are compared from their source tokens; collected tests and suites are compared from their names. The first item preserves Vitest's cached order, then Faster lazily chooses the least-similar candidate against the cumulative selected set. For groups larger than 256, it samples `sqrt(n)` candidates per selection to bound prioritization overhead.
+Each bucket puts cached failures before its other files. Faster computes one deterministic FAST-pw-style MinHash order over the full file set, then preserves that relative order inside each bucket. Source reads and changed-source detection run concurrently; shared dependency hashes are reused within that scheduling pass. The same FAST ordering applies on cold and warm runs. Prior durations do not determine file order.
 
-An optional FAST priority manifest overrides the built-in order for scored files and tests. This lets a producer add signals such as failure history or coverage without making a fresh checkout wait for preprocessing.
+An optional manifest supplies higher-priority scores within each bucket on every run. Equal scores and unscored files use the configured objective's ordering. Collected tests and suites use manifest scores and name-based similarity within each file. For sets larger than 256, the built-in similarity algorithm samples `sqrt(n)` candidates per selection. Project groups, project order and isolation boundaries remain in control.
 
 ```ts
 import { defineConfig } from 'faster/config'
@@ -26,6 +26,7 @@ import { defineConfig } from 'faster/config'
 export default defineConfig({
   test: {
     faster: {
+      optimizeFor: 'dx',
       changed: true,
       priorityFile: '.faster/priorities.json',
       immediateFailureOutput: true,
@@ -48,11 +49,29 @@ Enables or disables all Faster-specific behavior. Setting the top-level `faster`
 
 - **Type:** `boolean | string`
 - **Default:** `true`
-- **CLI:** `--faster.changed[=<revision>]`
+- **CLI:** `--faster.changed[=<revision>]`, `--faster.changed=false`
 
-Detects staged, unstaged, and untracked files with the configured VCS provider, then uses Vite's module graph to find every test file that transitively depends on them. A string additionally includes committed changes since that Git revision.
+Compares source and dependency snapshots from the previous completed run. Faster captures the sources before execution and saves snapshots only for completed test files, including failed files. Interrupted runs retain the previous source history. Vite's module graph supplies the dependencies. Edits and reverts both count as changes relative to that run. A string additionally includes changes since that Git revision.
+
+Source history lives in the configured results-cache directory and is cleared by `--clearCache`. Setting `faster: false`, `faster.changed: false` or `cache: false` disables source-history persistence. Malformed or incompatible history is treated as a cold start. Projects with Faster disabled keep Vitest's file ordering.
 
 Set this to `false` to disable the changed-source bucket while retaining built-in and manifest ordering plus immediate failures.
+
+## faster.optimizeFor
+
+- **Type:** `'dx' | 'apfd'`
+- **Default:** `'dx'`
+- **CLI:** `--faster.optimizeFor=apfd`
+
+`dx` puts affected files before unchanged files, including unchanged cached failures, and retains the global FAST order within each bucket.
+
+`apfd` puts all cached failing files first. Within each failure-status group it orders directly edited or newly added tests before transitively affected tests, then the remaining files. Within those buckets it combines normalized ranks of previous duration and current source size: `durationRank + 0.1 * sizeRank`, with higher scores first. Ranks use the distinct values within each project; missing durations have rank zero. This uses prior duration as a fault-revelation signal, rather than an execution-time objective. Manifest scores take precedence, and FAST breaks remaining ties. Project grouping and explicit custom sequencers remain in control.
+
+```bash
+faster run --faster.optimizeFor=apfd --no-file-parallelism --maxWorkers=1
+```
+
+This is a heuristic for experiments, not a guarantee of optimal APFD. Ranking uses current source bytes and changes plus results from prior runs; current outcomes never enter the ranking. Cold starts have no duration history, so APFD favors larger files while DX uses FAST. Stale failures and unrelated test edits can delay new faults. The policy operates at file level; test and suite ordering within a file is unchanged. Use serial execution for position-based metrics; parallel feedback needs event timestamps.
 
 ## faster.priorityFile
 

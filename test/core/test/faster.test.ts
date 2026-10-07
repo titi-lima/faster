@@ -1,7 +1,6 @@
 import type { Reporter, TestCase } from 'vitest/node'
-import { resolve } from 'node:path'
 import { describe, expect, test } from 'vitest'
-import { runInlineTests } from '../../test-utils'
+import { runInlineTests, runVitest } from '../../test-utils'
 
 function orderReporter(order: string[]): Reporter {
   return {
@@ -37,19 +36,18 @@ describe('Faster prioritization', () => {
   test('runs tests affected by changed source before higher-scored remaining tests', async () => {
     const order: string[] = []
 
-    await runInlineTests(project, {
-      experimental: {
-        vcsProvider: {
-          async findChangedFiles({ root }) {
-            return [resolve(root, 'src/affected.ts')]
-          },
-        },
-      },
+    const config = {
       faster: true,
+      cache: { dir: 'node_modules/.vite' },
       fileParallelism: false,
       maxWorkers: 1,
       reporters: [orderReporter(order)],
-    })
+    }
+    const first = await runInlineTests(project, config)
+    await first.ctx!.close()
+    first.fs.editFile('src/affected.ts', source => `${source}\n// source changed\n`)
+    order.length = 0
+    await runVitest({ ...config, root: first.root })
 
     expect(order).toEqual(['affected', 'remaining'])
   })
