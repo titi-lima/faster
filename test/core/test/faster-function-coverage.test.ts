@@ -56,6 +56,18 @@ test('finishes an unchanged warm run successfully without selecting files', asyn
   expect(second.exitCode).toBe(0)
 })
 
+test('preserves explicit Vitest force-rerun triggers when selection is enabled', async () => {
+  const first = await runInlineTests({ ...files, 'package.json': '{"type":"module"}' }, options)
+  await first.ctx!.close()
+  const second = await runVitest({
+    ...options,
+    root: first.root,
+    related: [first.fs.resolveFile('package.json')],
+    forceRerunTriggers: [first.fs.resolveFile('package.json')],
+  })
+  expect(second.ctx!.state.getFiles().map(file => file.name).sort()).toEqual(['left.test.ts', 'right.test.ts'])
+})
+
 test('selects callers through a shared barrel, retains failures and refreshes only executed files', async () => {
   const first = await runInlineTests(files, options)
   expect(first.ctx!.state.getFiles().map(file => file.name).sort()).toEqual(['left.test.ts', 'right.test.ts'])

@@ -35,6 +35,11 @@ export class VitestSpecifications {
     const specifications = await this.filterTestsBySource(
       await this.globTestSpecifications(filters),
     )
+    const related = this.vitest.config.related
+    const triggers = this.vitest.config.forceRerunTriggers
+    if (related && triggers.length && related.some(file => pm(triggers)(file))) {
+      return specifications
+    }
     const tracked = specifications.filter(spec => spec.project.config.faster.enabled && spec.project.config.faster.selectAffected)
     if (!tracked.length || tracked.some(spec => typeof spec.project.config.faster.changed === 'string')) {
       return specifications
