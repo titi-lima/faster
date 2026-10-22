@@ -1,12 +1,14 @@
 import type { File } from '@vitest/runner'
 import type { Vitest } from '../core'
 import type { TestSpecification } from '../test-specification'
+import type { FunctionSnapshot } from './functionCoverage'
 import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { slash } from '@vitest/utils/helpers'
 import { dirname, relative, resolve } from 'pathe'
 import { hash } from '../hash'
 import { getTestDependencies } from './affectedTests'
+import { collectFasterFunctionSnapshots, isFunctionDependencyAffected, isFunctionSnapshot, resetFasterFunctionCoverage } from './functionCoverage'
 
 const STATE_VERSION = 1
 const MISSING_SOURCE = '<missing>'
@@ -14,6 +16,7 @@ const MISSING_SOURCE = '<missing>'
 interface FasterSourceState {
   version: typeof STATE_VERSION
   tests: Record<string, Record<string, string>>
+  functionTests?: Record<string, Record<string, FunctionSnapshot>>
 }
 
 type SourceSnapshot = Record<string, string>
@@ -50,18 +53,24 @@ export async function getTestSourceChanges(
   }))
 
   const changes = new Map<TestSpecification, FasterSourceChange>()
-  for (const [specification, previous, current] of comparisons) {
+  await Promise.all(comparisons.map(async ([specification, previous, current]) => {
     const ownPath = slash(relative(specification.project.config.root, specification.moduleId))
     const changedPaths = previous && current
       ? Object.keys(previous).filter(path => previous[path] !== current[path])
       : []
+    const changedDependencies = (await Promise.all(changedPaths.filter(path => path !== ownPath).map(async (path) => {
+      const snapshot = state.functionTests?.[getTestKey(specification)]?.[path]
+      return specification.project.config.faster.granularity !== 'function'
+        || snapshot?.sourceHash !== previous?.[path]
+        || await isFunctionDependencyAffected(specification.project, path, snapshot)
+    }))).filter(Boolean).length
     changes.set(specification, {
       known: Boolean(previous),
-      changed: Boolean(previous && current && !sameSnapshot(previous, current)),
+      changed: changedPaths.includes(ownPath) || changedDependencies > 0,
       testChanged: changedPaths.includes(ownPath),
-      changedDependencies: changedPaths.filter(path => path !== ownPath).length,
+      changedDependencies,
     })
-  }
+  }))
   return changes
 }
 
@@ -69,6 +78,7 @@ export async function captureTestRunSourceSnapshots(
   vitest: Vitest,
   specifications: TestSpecification[],
 ): Promise<FasterSourceSnapshots> {
+  resetFasterFunctionCoverage(vitest)
   const eligible = specifications.filter(specification => specification.project.config.faster.enabled && specification.project.config.faster.changed)
   if (vitest.config.cache === false || !eligible.length) {
     return new Map()
@@ -100,6 +110,16 @@ export async function saveTestRunSourceSnapshots(
       continue
     }
     state.tests[getTestKey(specification)] = snapshot
+    state.functionTests ??= Object.create(null)
+    if (specification.project.config.faster.granularity === 'function') {
+      const current = await readSnapshot(specification, Object.keys(snapshot))
+      state.functionTests![getTestKey(specification)] = sameSnapshot(snapshot, current)
+        ? await collectFasterFunctionSnapshots(specification.project, specification.moduleId, snapshot)
+        : {}
+    }
+    else {
+      delete state.functionTests![getTestKey(specification)]
+    }
     updated = true
   }
   if (updated) {
@@ -181,6 +201,14 @@ async function readState(filepath?: string): Promise<FasterSourceState> {
     for (const [key, snapshot] of Object.entries(parsed.tests)) {
       if (isRecord(snapshot) && Object.keys(snapshot).length && Object.values(snapshot).every(value => typeof value === 'string' && (value === MISSING_SOURCE || /^[a-f\d]{40}$/.test(value)))) {
         state.tests[key] = snapshot as SourceSnapshot
+      }
+    }
+    if (isRecord(parsed.functionTests)) {
+      state.functionTests = Object.create(null)
+      for (const [key, snapshots] of Object.entries(parsed.functionTests)) {
+        if (isRecord(snapshots)) {
+          state.functionTests![key] = Object.fromEntries(Object.entries(snapshots).filter(([, value]) => isFunctionSnapshot(value))) as Record<string, FunctionSnapshot>
+        }
       }
     }
   }

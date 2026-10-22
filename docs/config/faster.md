@@ -35,7 +35,7 @@ export default defineConfig({
 })
 ```
 
-Faster does not filter the suite. Use Vitest's existing [`changed`](/guide/cli#changed) or `related` options when you want to run only affected tests.
+Faster runs the full suite by default. Set `faster.selectAffected` to select files using the previous completed run's dependency observations. Vitest's [`changed`](/guide/cli#changed) and `related` options retain their existing import-based selection.
 
 ## faster.enabled
 
@@ -72,6 +72,40 @@ faster run --faster.optimizeFor=apfd --no-file-parallelism --maxWorkers=1
 ```
 
 This is a heuristic for experiments, not a guarantee of optimal APFD. Ranking uses current source bytes and changes plus results from prior runs; current outcomes never enter the ranking. Cold starts have no duration history, so APFD favors larger files while DX uses FAST. Stale failures and unrelated test edits can delay new faults. The policy operates at file level; test and suite ordering within a file is unchanged. Use serial execution for position-based metrics; parallel feedback needs event timestamps.
+
+## faster.granularity
+
+- **Type:** `'file' | 'function'`
+- **Default:** `'file'`
+- **CLI:** `--faster.granularity=function`
+
+The experimental `function` mode retains V8 execution coverage separately for each test file. When a dependency changes only within an existing function body, Faster prioritizes or selects files that previously called that function. Nested function bodies are tracked separately. A shared package entry point can therefore remain a dependency without making every test affected by every exported function.
+
+Install the matching `@vitest/coverage-v8` package. Function tracking enables V8 coverage collection automatically; it does not generate coverage reports unless ordinary coverage reporting is enabled. It currently requires isolated Node test files for refinement. Unsupported environments, missing coverage, older caches, changed function structure, and changes outside function bodies fall back to file dependencies. Unknown and directly edited tests retain their usual priority.
+
+This mode uses prior execution observations. They do not guarantee that arbitrary future environment changes, reflection, or new execution paths are unaffected. Configuration and dependency changes still need a full run. Raw type and comment changes are not filtered as a separate optimization.
+
+## faster.selectAffected
+
+- **Type:** `boolean`
+- **Default:** `false`
+- **CLI:** `--faster.selectAffected`
+
+Runs test files that are unknown, directly changed, affected by a dependency, or previously failing. It requires `faster.changed` and works with both granularities. Cold runs execute the full suite. Only executed files refresh their source and function observations; skipped files retain their prior observations. An unchanged suite can finish successfully with no files selected.
+
+```ts
+export default defineConfig({
+  test: {
+    faster: {
+      changed: true,
+      granularity: 'function',
+      selectAffected: true,
+    },
+  },
+})
+```
+
+Selection compares against each file's previous completed run. If `faster.changed` specifies a Git revision, selection conservatively keeps the full suite; revision-based affectedness still contributes to prioritization. `faster: false` disables this selection.
 
 ## faster.priorityFile
 

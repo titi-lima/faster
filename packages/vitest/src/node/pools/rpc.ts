@@ -7,6 +7,7 @@ import { cleanUrl } from '@vitest/utils/helpers'
 import { isBuiltin, toBuiltin } from '../../utils/modules'
 import { handleRollupError } from '../environments/fetchModule'
 import { normalizeResolvedIdToUrl } from '../environments/normalizeUrl'
+import { recordFasterFunctionCoverage } from '../faster/functionCoverage'
 
 interface MethodsOptions {
   cacheFs?: boolean
@@ -119,6 +120,7 @@ export function createMethodsRPC(project: TestProject, methodsOptions: MethodsOp
       }
     },
     onAfterSuiteRun(meta) {
+      recordFasterFunctionCoverage(project, meta)
       vitest.coverageProvider?.onAfterSuiteRun(meta)
     },
     async onTaskArtifactRecord(testId, artifact) {

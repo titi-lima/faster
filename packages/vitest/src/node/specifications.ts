@@ -5,6 +5,7 @@ import pm from 'picomatch'
 import { groupFilters, parseFilter } from './cli/filter'
 import { IncludeTaskLocationDisabledError, LocationFilterFileNotFoundError } from './errors'
 import { findAffectedTestSpecifications } from './faster/affectedTests'
+import { getTestSourceChanges } from './faster/sourceChanges'
 
 export class VitestSpecifications {
   private readonly _cachedSpecs = new Map<string, TestSpecification[]>()
@@ -31,9 +32,19 @@ export class VitestSpecifications {
   }
 
   public async getRelevantTestSpecifications(filters: string[] = []): Promise<TestSpecification[]> {
-    return this.filterTestsBySource(
+    const specifications = await this.filterTestsBySource(
       await this.globTestSpecifications(filters),
     )
+    const tracked = specifications.filter(spec => spec.project.config.faster.enabled && spec.project.config.faster.selectAffected)
+    if (!tracked.length || tracked.some(spec => typeof spec.project.config.faster.changed === 'string')) {
+      return specifications
+    }
+    const changes = await getTestSourceChanges(this.vitest, tracked)
+    return specifications.filter((spec) => {
+      const change = changes.get(spec)
+      const failed = this.vitest.cache.getFileTestResults(`${spec.project.name}:${relative(this.vitest.config.root, spec.moduleId)}`)?.failed
+      return !change || !change.known || change.testChanged || change.changed || failed
+    })
   }
 
   public async globTestSpecifications(filters: string[] = []): Promise<TestSpecification[]> {

@@ -179,6 +179,15 @@ export function resolveConfig(
   } as any as ResolvedConfig
 
   resolved.faster = resolveFasterOptions(viteConfig.root, options.faster)
+  if (resolved.faster.enabled && resolved.faster.selectAffected) {
+    resolved.passWithNoTests = options.passWithNoTests ?? true
+  }
+  if (resolved.faster.enabled && resolved.faster.changed && resolved.faster.granularity === 'function') {
+    if (resolved.coverage.provider !== 'v8') {
+      throw new TypeError('faster.granularity="function" requires the V8 coverage provider.')
+    }
+    resolved.coverage = { ...resolved.coverage, enabled: true, reporter: options.coverage?.enabled ? resolved.coverage.reporter : [] }
+  }
 
   if (resolved.retry && typeof resolved.retry === 'object' && typeof resolved.retry.condition === 'function') {
     logger.console.warn(
