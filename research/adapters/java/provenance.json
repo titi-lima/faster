@@ -1,0 +1,12 @@
+{
+  "originalStudy": "faster-java-method-selection-20261021",
+  "unchangedSources": {
+    "ScopeAgent.java": "0c297ca9149d6c5247a0d18a5c0440f056c789c4793b40b9c272f512c2c3a738",
+    "Analyze.java": "d7f60a30938b86b87247441a71906e231c1c810d5f5d2ca09e8b1d020b6f1399"
+  },
+  "refinementExtractedFrom": {
+    "source": "scripts/run.py",
+    "SHA256": "362cd29ada5b0e9e631e66527abdccc8206a14d2895b4b74ff4e34035dafe751",
+    "adaptation": "Portable paths and CLI; missing changed-dependency attribution additionally falls back to coarse affectedness. All 948 original feature observations matched."
+  }
+}

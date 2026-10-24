@@ -1,0 +1,9 @@
+{
+  "org/jacoco/org.jacoco.agent/0.8.4/org.jacoco.agent-0.8.4-runtime.jar": "1a7c1dc7280e535b9b6f383915bac5afbb9208c1af2019b4e674ca590c925c22",
+  "org/jacoco/org.jacoco.core/0.8.4/org.jacoco.core-0.8.4.jar": "f0ac7073ce2a0e14b83f44ddc3ef2f638df73a4c2524204b3407515b535335a6",
+  "org/ow2/asm/asm/7.1/asm-7.1.jar": "4ab2fa2b6d2cc9ccb1eaa05ea329c407b47b13ed2915f62f8c4b8cc96258d4de",
+  "org/ow2/asm/asm-tree/7.1/asm-tree-7.1.jar": "c0e82b220b0a52c71c7ca2a58c99a2530696c7b58b173052b9d48fe3efb10073",
+  "org/ow2/asm/asm-commons/7.1/asm-commons-7.1.jar": "e5590489d8f1984d85bfeabd3b17374c59c28ae09d48ec4a0ebbd01959ecd358",
+  "org/ow2/asm/asm-analysis/7.1/asm-analysis-7.1.jar": "4612c0511a63db2a2570f07ad1959e19ed8eb703e4114da945cb85682519a55c",
+  "org/ow2/asm/asm-util/6.0/asm-util-6.0.jar": "356afebdb0f870175262e5188f8709a3b17aa2a5a6a4b0340b04d4b449bca5f6"
+}

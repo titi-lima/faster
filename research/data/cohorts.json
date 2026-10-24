@@ -1,0 +1,79 @@
+{
+  "paper-java-file": {
+    "cases": 541,
+    "projects": [
+      "Chart",
+      "Cli",
+      "Closure",
+      "Codec",
+      "Collections",
+      "Compress",
+      "Gson",
+      "Jsoup",
+      "JxPath",
+      "Lang",
+      "Math",
+      "Time"
+    ],
+    "developmentProject": "Jsoup",
+    "outsideDevelopmentCases": 448,
+    "faultModel": "curated-trigger",
+    "history": "Recorded author bug-ID order; not always forward ancestry",
+    "granularity": "file",
+    "pin": "c3a28ac84309d5df30d70c29ac60aefe92447ff5"
+  },
+  "external-java-paired": {
+    "cases": 17,
+    "projects": [
+      "commons-csv",
+      "commons-io",
+      "commons-text",
+      "jackson-core",
+      "javapoet"
+    ],
+    "candidateAttempts": 31,
+    "faultModel": "Git repair commit, parent production with fixed tests",
+    "eligibility": "Metadata-guided behavior repairs touching production and test Java sources; exact candidate revisions retained in attempts.json",
+    "granularity": [
+      "file",
+      "method"
+    ],
+    "faultsPreviouslyObserved": true,
+    "allFaultsHaveRevealingDirectTier": true,
+    "recordedNativeCoverageControls": 26,
+    "nativeSubsetRuns": 34
+  },
+  "javascript-paired": {
+    "cases": 18,
+    "projects": [
+      "pinia",
+      "zod"
+    ],
+    "candidateAttempts": 72,
+    "pilotProjects": [
+      "pinia",
+      "zod",
+      "h3"
+    ],
+    "snapshotsPerProject": 3,
+    "mutationSeed": 20261009,
+    "operators": [
+      "negate-if",
+      "invert-comparison",
+      "flip-boolean"
+    ],
+    "sampling": "54 seeded file/site choices, then 18 additional core mutations; all attempts retained",
+    "faultModel": "seeded AST mutation at Git snapshot",
+    "granularity": [
+      "file",
+      "function"
+    ],
+    "pin": "d3e3811df4f23dc73de56a32728c044a3b7de6d5",
+    "independentHoldout": false
+  },
+  "qualifiedDiagnostics": {
+    "h3": "No passing full current control in 13 attempts at the fault snapshot; separate failed-prior diagnostic only",
+    "commons-dbutils": "One candidate excluded for incompatible fixed-test overlay",
+    "jopt-simple": "No metadata-eligible candidate, not a fault attempt"
+  }
+}

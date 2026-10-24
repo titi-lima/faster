@@ -41,6 +41,9 @@ An API-compatible Vitest fork with built-in FAST test prioritization and immedia
 
 ## Features
 
+For the prioritization strategy, benchmark methodology and reproducible results,
+see the [research workspace](./research/README.md).
+
 - Changed source files are mapped transitively to dependent tests and scheduled first.
 - A built-in deterministic FAST-pw-style MinHash order prioritizes both affected tests and the remaining suite.
 - Optional `.faster/priorities.json` scores override the built-in order when richer producer signals are available.
