@@ -2,7 +2,7 @@
   "name": "faster",
   "type": "module",
   "version": "4.1.7-faster.0",
-  "description": "Vitest-compatible test runner with built-in FAST prioritization",
+  "description": "Vitest-compatible runner with function-aware selection and history-based prioritization",
   "license": "MIT",
   "repository": {
     "type": "git",

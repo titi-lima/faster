@@ -1,7 +1,7 @@
 import type { Reporter, TestCase } from 'vitest/node'
 import { describe, expect, test } from 'vitest'
 import { createCLI } from '../../../packages/vitest/src/node/cli/cac'
-import { getApfdPriorityScores } from '../../../packages/vitest/src/node/faster/apfdPriority'
+import { getApfdPriorityScores, getFasterPriorityBucket } from '../../../packages/vitest/src/node/faster/apfdPriority'
 import { resolveFasterOptions } from '../../../packages/vitest/src/node/faster/priorityManifest'
 import { runInlineTests, runVitest } from '../../test-utils'
 
@@ -52,7 +52,7 @@ describe.each(['dx', 'apfd'] as const)('objective %s', (optimizeFor) => {
     const second = await runVitest({ ...config, root: first.root })
     expect(order).toEqual(optimizeFor === 'apfd'
       ? ['unchanged failure', 'affected pass', 'unchanged pass']
-      : ['affected pass', 'unchanged failure', 'unchanged pass'])
+      : ['affected pass', 'unchanged pass', 'unchanged failure'])
     expect(second.ctx!.state.getTestModules().flatMap(module => [...module.children.allTests()])
       .map(testCase => testCase.result().state).sort()).toEqual(['failed', 'passed', 'passed'])
   })
@@ -67,7 +67,7 @@ test('uses rank-based history and breadth without allowing NaN to corrupt orderi
   ])).toEqual([1, 0.6, 0.1, 0])
 })
 
-test('APFD promotes edited and new tests ahead of slow transitively affected tests', async () => {
+test.each(['dx', 'apfd'] as const)('%s shares change priorities and only DX defers an unchanged known failure', async (optimizeFor) => {
   const order: string[] = []
   const reporter: Reporter = {
     onTestCaseReady(testCase) {
@@ -76,7 +76,7 @@ test('APFD promotes edited and new tests ahead of slow transitively affected tes
   }
   const options = {
     cache: { dir: 'node_modules/.vite' },
-    faster: { optimizeFor: 'apfd' as const },
+    faster: { optimizeFor },
     fileParallelism: false,
     maxWorkers: 1,
     reporters: [reporter],
@@ -93,5 +93,48 @@ test('APFD promotes edited and new tests ahead of slow transitively affected tes
   first.fs.createFile('c.test.ts', `import { test } from 'vitest'; test('new test', () => {})`)
   order.length = 0
   await runVitest({ ...options, root: first.root })
-  expect(order).toEqual(['cached failure', 'edited', 'new test', 'slow affected'])
+  expect(order).toEqual(optimizeFor === 'apfd'
+    ? ['cached failure', 'edited', 'new test', 'slow affected']
+    : ['edited', 'new test', 'slow affected', 'cached failure'])
+})
+
+test('the objectives differ only for unchanged, unaffected failures', () => {
+  for (const failed of [false, true]) {
+    for (const direct of [false, true]) {
+      for (const affected of [false, true]) {
+        const signals = { failed, direct, affected }
+        const apfd = getFasterPriorityBucket(signals, 'apfd')
+        expect(getFasterPriorityBucket(signals, 'dx')).toBe(failed && !direct && !affected ? 6 : apfd)
+      }
+    }
+  }
+})
+
+test.each(['dx', 'apfd'] as const)('%s still prioritizes edited and affected known failures', async (optimizeFor) => {
+  const order: string[] = []
+  const options = {
+    cache: { dir: 'node_modules/.vite' },
+    faster: { optimizeFor },
+    fileParallelism: false,
+    maxWorkers: 1,
+    reporters: [{ onTestCaseReady(testCase: TestCase) { order.push(testCase.name) } }],
+  }
+  const first = await runInlineTests({
+    'src/value.ts': 'export const value = 1',
+    'failed-edited.test.ts': `import { test, expect } from 'vitest'; test('failed edited', () => expect(1).toBe(2))`,
+    'failed-affected.test.ts': `import { test, expect } from 'vitest'; import { value } from './src/value'; test('failed affected', () => expect(value).toBe(2))`,
+    'failed-stale.test.ts': `import { test, expect } from 'vitest'; test('failed stale', () => expect(1).toBe(2))`,
+    'passed-edited.test.ts': `import { test } from 'vitest'; test('passed edited', () => {})`,
+    'passed-affected.test.ts': `import { test, expect } from 'vitest'; import { value } from './src/value'; test('passed affected', () => expect(value).toBe(1))`,
+    'passed-stale.test.ts': `import { test } from 'vitest'; test('passed stale', () => {})`,
+  }, options)
+  await first.ctx!.close()
+  first.fs.editFile('src/value.ts', source => `${source}\n// changed dependency\n`)
+  first.fs.editFile('failed-edited.test.ts', source => `${source}\n// changed test\n`)
+  first.fs.editFile('passed-edited.test.ts', source => `${source}\n// changed test\n`)
+  order.length = 0
+  await runVitest({ ...options, root: first.root })
+  expect(order).toEqual(optimizeFor === 'apfd'
+    ? ['failed edited', 'failed affected', 'failed stale', 'passed edited', 'passed affected', 'passed stale']
+    : ['failed edited', 'failed affected', 'passed edited', 'passed affected', 'passed stale', 'failed stale'])
 })

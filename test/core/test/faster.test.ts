@@ -52,7 +52,7 @@ describe('Faster prioritization', () => {
     expect(order).toEqual(['affected', 'remaining'])
   })
 
-  test('uses FAST scores for the remaining suite', async () => {
+  test('uses producer scores for the remaining suite', async () => {
     const order: string[] = []
 
     await runInlineTests(project, {
@@ -67,7 +67,7 @@ describe('Faster prioritization', () => {
     expect(order).toEqual(['remaining', 'affected'])
   })
 
-  test('uses built-in FAST similarity to order unscored test files', async () => {
+  test('prioritizes larger test files without execution history', async () => {
     const order: string[] = []
 
     await runInlineTests({
@@ -97,7 +97,7 @@ describe('Faster prioritization', () => {
     expect(order).toEqual(['first file', 'dissimilar file', 'similar file'])
   })
 
-  test('uses FAST scores within a test file', async () => {
+  test('uses producer scores within a test file', async () => {
     const order: string[] = []
 
     await runInlineTests({

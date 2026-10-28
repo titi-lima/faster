@@ -5,8 +5,8 @@ outline: deep
 
 # faster
 
-FASTER prioritizes tests using source changes, previous failures and FAST
-similarity. Function coverage identifies affected tests automatically. The full
+FASTER prioritizes tests using source changes, previous failures and history/size
+scores. Function coverage identifies affected tests automatically. The full
 suite runs unless selection is enabled.
 
 ```ts
@@ -38,11 +38,13 @@ Enable FASTER. `faster: false` disables its behavior.
 - **Default:** `'dx'`
 - **CLI:** `--faster.optimizeFor=apfd`
 
-`dx` runs affected tests first, with previous failures first inside each group.
-`apfd` runs previous failures first; each failure group orders edited/unknown,
-then affected, then remaining tests. Within those buckets, higher
-`durationRank + 0.1 * sizeRank` scores precede lower scores; FAST breaks ties.
-This is an empirical fault-detection heuristic, not a runtime objective.
+Both modes order previous failures first, grouping edited/unknown tests before
+other affected tests, then remaining tests. Higher
+`durationRank + 0.1 * sizeRank` scores lead inside each group; equal priorities
+keep path order. Producer scores take precedence inside a group.
+
+The only difference: `dx` sends unchanged, unaffected known failures to the end.
+`apfd` retains their failure priority. Scores target fault detection, not runtime.
 
 ## faster.changed
 

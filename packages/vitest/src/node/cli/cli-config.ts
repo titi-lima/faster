@@ -497,7 +497,7 @@ export const cliOptionsConfig: VitestCLIOptions = {
   },
   faster: {
     description:
-      'Prioritize tests using source/failure buckets and FAST similarity; APFD mode adds edited/new tests and history/breadth signals (with optional .faster/priorities.json scores); print failures immediately (default: true)',
+      'Prioritize tests using failure/change buckets and history/size scores; print failures immediately (default: true)',
     argument: '',
     transform: transformNestedBoolean,
     subcommands: {
@@ -505,7 +505,7 @@ export const cliOptionsConfig: VitestCLIOptions = {
         description: 'Enable Faster prioritization (default: true)',
       },
       optimizeFor: {
-        description: 'Ordering objective: dx uses affected-first FAST; apfd prioritizes failures and edited/new tests with history/breadth ranking (default: dx)',
+        description: 'Shared failure/change ranking; dx defers unchanged, unaffected known failures (default: dx)',
         argument: '<dx|apfd>',
       },
       changed: {
@@ -513,7 +513,7 @@ export const cliOptionsConfig: VitestCLIOptions = {
         argument: '[since]',
       },
       priorityFile: {
-        description: 'Path to the FAST priority manifest (default: .faster/priorities.json)',
+        description: 'Path to the producer priority manifest (default: .faster/priorities.json)',
         argument: '<path>',
         normalize: true,
       },
