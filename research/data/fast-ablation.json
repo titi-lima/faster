@@ -1,11 +1,11 @@
 {
-  "implementation": "a0b39f28aa269206dd2abde4a56e8955e7516cff",
-  "benchmarkSHA256": "3eed04f0cb34b2a081f8aee4d139dc81587ed727f17811fa07f88fa3d7c1855b",
+  "implementation": "449aa3015419ae7f99ecd515f4a1174e99602a70",
+  "benchmarkSHA256": "2e4438dd4229b1ed83529b4fb65c3c17f552fa3fb5370353a41b00bc3cd3b554",
   "node": "v24.22.1",
   "platform": "darwin",
   "arch": "arm64",
   "cpu": "Apple M4",
-  "scope": "Offline ordering ablation, not new native outcomes. Input decoding, source IO, coverage, dependency maintenance and test execution excluded from timings. JS full-suite, all DX and synthetic cold-start outcomes are counterfactual.",
+  "scope": "Offline ordering ablation, not new native outcomes. Input decoding, source IO, coverage, dependency maintenance and test execution excluded from timings. JS full-suite and synthetic cold-start outcomes are counterfactual.",
   "fallback": "Recorded canonical input order; buckets, scores, selection and fault identities unchanged.",
   "sources": {
     "faster-java-method-selection-20261021/results/Phase1/commons-csv/8b3de71f/features.json": "2776ea7f9f3a221a511151affd2374858ff2b1e33d78117942a1fd9110d16869",
@@ -87,7 +87,7 @@
     "faster-function-selection-20261021/controls/zod/cc4cd4ee9c52/cache/vitest/370c9d479d09587bde74e9b0ed68424ecb3d2c45/results.json": "1ff8662cae9561e83b23795ba08175560ac7669380210227971cae2930ad7d2b"
   },
   "datasetSHA256": "a744317b8fded73a66ee5677df2c681b70648d815688710cc3a86842e44728da",
-  "detailsSHA256": "04b498f1b6fe1be04ba9b8f6d54b121664c99abd4d948e922bfb4d2c73745a20",
+  "detailsSHA256": "b17a4c87ae0a1e9a4808733b4b5eea33f934ab6fb5a172c55f3a07b2071d6358",
   "recordedOrdersVerified": 52,
   "timing": {
     "warmups": 3,
@@ -108,11 +108,11 @@
       "fastWins": 0,
       "fastLosses": 0,
       "medianCaseKernelWallMs": {
-        "fast": 1.4817079999997986,
-        "fallback": 0.003416999999899417
+        "fast": 1.4924580000001697,
+        "fallback": 0.0035000000002582965
       },
       "medianCaseKernelCPUMs": {
-        "fast": 1.473,
+        "fast": 1.491,
         "fallback": 0.003
       }
     },
@@ -129,11 +129,11 @@
       "fastWins": 0,
       "fastLosses": 0,
       "medianCaseKernelWallMs": {
-        "fast": 1.5101250000002437,
+        "fast": 1.508792000000085,
         "fallback": 0.004667000000154076
       },
       "medianCaseKernelCPUMs": {
-        "fast": 1.487,
+        "fast": 1.507,
         "fallback": 0.004
       }
     },
@@ -150,54 +150,12 @@
       "fastWins": 0,
       "fastLosses": 0,
       "medianCaseKernelWallMs": {
-        "fast": 1.5427500000000691,
-        "fallback": 0.004290999999966516
+        "fast": 1.4898749999999836,
+        "fallback": 0.004124999999930878
       },
       "medianCaseKernelCPUMs": {
-        "fast": 1.525,
+        "fast": 1.512,
         "fallback": 0.004
-      }
-    },
-    {
-      "history": "recorded",
-      "objective": "dx",
-      "scope": "full",
-      "cases": 35,
-      "casesWithExactTies": 35,
-      "tiedUnits": 1618,
-      "retainedUnits": 1624,
-      "ordersChanged": 35,
-      "firstFailureRanksChanged": 18,
-      "fastWins": 8,
-      "fastLosses": 10,
-      "medianCaseKernelWallMs": {
-        "fast": 1.4892910000003212,
-        "fallback": 0.0013750000000527507
-      },
-      "medianCaseKernelCPUMs": {
-        "fast": 1.487,
-        "fallback": 0.001
-      }
-    },
-    {
-      "history": "recorded",
-      "objective": "dx",
-      "scope": "selected",
-      "cases": 35,
-      "casesWithExactTies": 29,
-      "tiedUnits": 880,
-      "retainedUnits": 887,
-      "ordersChanged": 23,
-      "firstFailureRanksChanged": 15,
-      "fastWins": 5,
-      "fastLosses": 10,
-      "medianCaseKernelWallMs": {
-        "fast": 1.456833999999958,
-        "fallback": 0.001125000000001819
-      },
-      "medianCaseKernelCPUMs": {
-        "fast": 1.46,
-        "fallback": 0.001
       }
     }
   ],

@@ -48,7 +48,7 @@ def main():
         subprocess.run(['node', '--import', 'tsx', str(ROOT / 'adapters/order.ts'),
                         str(directory / 'features.json'), str(output)], cwd=ROOT.parent, check=True)
         actual, frozen = read(output), read(directory / 'frozen-orders.json')
-        for key in ['order', 'fastOrder']:
+        for key in ['order']:
             require(actual[key] == frozen[key], f'Ordering drift: {pid}/{rev}/{key}')
     print(json.dumps({'cases': len(plan['cases']), 'featureObservations': checked,
                       'orderingReplays': len(plan['cases']), 'allMatch': True}, indent=2))

@@ -35,8 +35,9 @@ selected order changes: four nonrevealing Zod tests exchange positions. Full-sui
 and synthetic cold-start checks also preserve first-failure ranks. The replay
 first verifies 52 recorded orders; it does not execute native tests again.
 
-On Apple M4 / Node 24, median ordering-kernel time is 1.54 ms with FAST versus
+On Apple M4 / Node 24, median ordering-kernel time is 1.49 ms with FAST versus
 0.004 ms without it (three warmups, fifteen alternating measurements per case).
-This excludes source IO, coverage and test execution. FAST remains substantive in
-DX ordering and within-test-file ordering; those are separate decisions.
+This excludes source IO, coverage and test execution. Both objectives now use
+the same scoring; FAST is removed from test-file scheduling. Within-test-file
+ordering is a separate mechanism.
 Details and source fingerprints: `data/fast-ablation.json`.

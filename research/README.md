@@ -1,6 +1,6 @@
 # FASTER research
 
-FASTER orders tests using previous failures, source changes and FAST similarity.
+FASTER orders tests using previous failures, source changes and history/size scores.
 Function coverage identifies tests affected by a changed function. Selection is
 optional; unknown, edited and previously failing tests always remain eligible.
 
@@ -8,7 +8,7 @@ optional; unknown, edited and previously failing tests always remain eligible.
 
 | Location | Responsibility |
 | --- | --- |
-| [FasterSequencer](../packages/vitest/src/node/sequencers/FasterSequencer.ts) | Combine priority buckets, scores and FAST order |
+| [FasterSequencer](../packages/vitest/src/node/sequencers/FasterSequencer.ts) | Combine priority buckets, scores and path order |
 | [apfdPriority](../packages/vitest/src/node/faster/apfdPriority.ts) | Score previous duration and test-source size |
 | [functionCoverage](../packages/vitest/src/node/faster/functionCoverage.ts) | Match changed function bodies to recorded callers |
 | `benchmark/metrics.py` | Validate cases, calculate metrics and compare policies |
@@ -19,8 +19,10 @@ optional; unknown, edited and previously failing tests always remain eligible.
 
 The APFD order is: previous failures first; within each failure group, edited or
 unknown tests, then affected tests, then remaining tests. Within a bucket, use
-`durationRank + 0.1 × sizeRank` descending, with FAST breaking ties. Producer
-priorities, when supplied, take precedence inside a bucket.
+`durationRank + 0.1 × sizeRank` descending, with path order breaking ties. DX uses
+the same ranking, but sends unchanged,
+unaffected known failures to the end. Producer priorities take precedence inside
+a bucket.
 
 ## Run the analysis
 
