@@ -1,100 +1,62 @@
-# FASTER research workspace
+# FASTER research
 
-This folder is the review entry point for FASTER's prioritization and selection
-research. The runtime implementation stays in `packages/`; research adapters
-import that implementation rather than maintaining another FAST or APFD scorer.
-This folder is outside every published package's file allowlist.
+FASTER orders tests using previous failures, source changes and FAST similarity.
+Function coverage identifies tests affected by a changed function. Selection is
+optional; unknown, edited and previously failing tests always remain eligible.
 
-## Suggested review order
+## Code
 
-1. [Strategy and core code](STRATEGY.md): the exact scheduling rule, its inputs,
-   the meaning of function granularity, and links to the implementation.
-2. [Benchmark protocol](PROTOCOL.md): shared metrics and acceptance rules,
-   followed by the differences between the three existing cohorts.
-3. [Results and research questions](RESULTS.md): what the current evidence
-   establishes, regressions, and the next experiment to preregister.
-4. [Adapter guide](adapters/README.md): native execution, coverage collection,
-   and how to add a project without adding another scoring implementation.
+| Location | Responsibility |
+| --- | --- |
+| [FasterSequencer](../packages/vitest/src/node/sequencers/FasterSequencer.ts) | Combine priority buckets, scores and FAST order |
+| [apfdPriority](../packages/vitest/src/node/faster/apfdPriority.ts) | Score previous duration and test-source size |
+| [functionCoverage](../packages/vitest/src/node/faster/functionCoverage.ts) | Match changed function bodies to recorded callers |
+| `benchmark/metrics.py` | Validate cases, calculate metrics and compare policies |
+| `benchmark/import_evidence.py` | Import recorded experiments and audit native outcomes |
+| `adapters/` | Observe Vitest/Surefire runs and rank Java inputs |
+| `data/` | Recorded cases, candidate ledger and source fingerprints |
+| `tests/` | Contract tests and optional raw-evidence audit |
 
-## Reproduce the analysis
+The APFD order is: previous failures first; within each failure group, edited or
+unknown tests, then affected tests, then remaining tests. Within a bucket, use
+`durationRank + 0.1 × sizeRank` descending, with FAST breaking ties. Producer
+priorities, when supplied, take precedence inside a bucket.
 
-From the repository root, Python 3.10+ is sufficient. No project clones, Java,
-Node, extra Python packages, or network are needed for these commands:
+## Run the analysis
+
+Python 3.10+; no additional packages needed. From the repository root:
 
 ```bash
 python3 research/bench.py validate
-python3 research/bench.py summarize --cohort external-java-paired
-python3 research/bench.py summarize --cohort javascript-paired
-python3 research/bench.py summarize --cohort paper-java-file --partition outside-jsoup --aggregate cohort
-python3 research/bench.py inspect --cohort paper-java-file --project Chart --case 1
-python3 research/bench.py compare --cohort external-java-paired \
-  --left 'FASTER method selected' --right 'FASTER file selected' \
-  --metric skippedFraction
+python3 research/bench.py summarize
+python3 research/bench.py compare --cohort java --left FASTER --right 'Ekstazi+random'
 python3 -m unittest discover -s research/tests -v
 ```
 
-`data/cases.jsonl.gz` contains 576 derived cases: 541 paper Java cases, 17
-external Java cases and 18 JavaScript faults. Each has its own full test universe,
-revealing units, frozen/observed orders, implementation revision and evidence
-type. Summaries stay separated by cohort and project. `compare` refuses to pool
-cohorts and requires both policies on every included case.
+`inspect --cohort java --project PROJECT --case COMMIT` shows one case.
+`native.py` normalizes runner output and checks selected-test membership and
+outcomes. See [adapters](adapters/README.md) for native tooling.
 
-The 541-case dataset recomputes scores for three recorded deterministic orders. Its
-other baseline scores are retained under `referenceMetrics`, explicitly outside
-the recomputed results: their full permutations are not present in that
-authoritative artifact directory. All eight original external-Java policies
-have their recorded permutations and are recomputed, alongside the granularity
-ablation. The JavaScript ablation uses the two actual selected execution orders.
+## Evidence
 
-### Reconcile with the original evidence
+The active dataset has 17 Java repair cases and 18 JavaScript mutations.
+[Results](RESULTS.md) describe these recorded runs; changing the current code
+has not rerun them. Java ranks are replayed offline; JavaScript ranks come from
+serial execution. Java uses parent production with repaired tests, and every
+Java fault has an edited/unknown revealing test. JavaScript is a development
+cohort. These limitations prevent a general selection-safety claim.
 
-The repository includes compact derived data, not the large native logs,
-checkouts, dependency caches, bytecode, coverage files or third-party sources.
-`data/manifest.json` records the source-file hashes. Given the original `outputs`
-directory (obtained separately from the study owner):
+Each case treats its target as one fault. APFDf is
+`1 - (firstRevealingRank - 0.5) / fullSuiteSize`; misses score zero. Higher is
+better. Rank is a test position, not elapsed time. Budgets also use full suite
+size. Repetitions are averaged within cases; comparisons bootstrap projects,
+then cases. Runtime savings have not been measured.
 
-```bash
-python3 research/bench.py validate --evidence-root /path/to/outputs
-python3 research/bench.py import-evidence --evidence-root /path/to/outputs \
-  --out research/work/reimport
-python3 research/bench.py validate --data research/work/reimport/cases.jsonl.gz
-```
+`validate` checks the dataset and eight production source pins. With original
+artifacts, add `--evidence-root /path/to/outputs` to verify their fingerprints.
+Reimport with `import-evidence --evidence-root /path/to/outputs --out research/work/import`.
+The importer checks native method membership and outcomes. Reports without a
+start timestamp explicitly lack proof of a pre-execution freeze.
 
-With Node and installed workspace dependencies, audit the extracted Java
-affectedness adapter and all four ordering permutations against the original
-17 paired cases:
-
-```bash
-python3 research/tests/audit_original.py --evidence-root /path/to/outputs
-```
-
-The importer is read-only, independently rechecks available Java/JavaScript
-native method membership and outcome vectors, and checks historical APFDf values
-against the common scorer. `validate` also verifies the eight production source
-hashes in `core-map.json`. Reproducing analysis is distinct from rerunning native experiments;
-the latter additionally requires the pinned runtimes, project versions and
-project-specific build configuration described in the adapter guide.
-
-## Where work belongs
-
-| Location | Purpose |
-| --- | --- |
-| `../packages/` | Production ordering, change tracking, coverage and selection |
-| `benchmark/metrics.py` | Shared case validation, APFDf, budgets and paired inference |
-| `benchmark/import_evidence.py` | Migration from the original dated studies |
-| `benchmark/native.py` | Shared native control, membership and outcome checks |
-| `adapters/` | Framework-specific observation and execution glue |
-| `data/` | Versioned compact evidence, cohort definitions and attempt ledger |
-| `work/`, `artifacts/` | Ignored generated outputs and large raw evidence |
-| `apfd/` | Preserved original 93-case Jsoup tuning audit; see note below |
-
-The existing `apfd/` fixture is a historical tuning experiment with its own
-recorded cache and selected-count budget convention. It is not another 93
-independent cases, and its selected-count budgets must not be mixed with this
-workspace's full-N budgets. Keep that frozen audit for provenance; use the common
-scorer for new studies.
-
-For a review, comment on the strategy/protocol or the linked production code.
-For a new experiment, record its cohort, exclusions, revisions and feature freeze
-before observing its outcomes. A policy change needs a new implementation pin
-and a new study record; it must not overwrite this dataset.
+Large logs, checkouts and coverage belong in ignored `artifacts/`; generated
+outputs belong in ignored `work/`. Research code is excluded from the package.

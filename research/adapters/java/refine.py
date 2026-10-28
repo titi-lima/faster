@@ -1,4 +1,4 @@
-"""Portable method-affectedness adapter extracted from the matched Java study.
+"""Determine affected tests from changed methods and recorded coverage.
 
 CLI: refine.py FEATURES CURRENT_MODEL PRIOR_INDEX OUTPUT
 PRIOR_INDEX maps test IDs to {model: JSON path, coverage: JSON path}; paths are
@@ -58,7 +58,7 @@ def main():
         else:
             affected, reasons = feature['affected'], [{'decision': 'fallback', 'reason': 'No usable prior index'}]
         files.append({**feature, 'affected': affected})
-        decisions.append({'id': feature['id'], 'fileAffected': feature['affected'], 'methodAffected': affected, 'reasons': reasons})
+        decisions.append({'id': feature['id'], 'dependencyChanged': feature['affected'], 'affected': affected, 'reasons': reasons})
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps({**features, 'files': files}, indent=2) + '\n')
     output.with_suffix('.decisions.json').write_text(json.dumps(decisions, indent=2) + '\n')

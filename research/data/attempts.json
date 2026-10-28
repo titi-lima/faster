@@ -1,7 +1,6 @@
 [
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261010",
+    "cohort": "java",
     "project": "commons-csv",
     "fixed": "8b3de71fd99d0fa07cb6a3a35b583bbb170aab66",
     "buggyParent": "e76c4d809cf2b39a9d7fe831b63e60891fe47f55",
@@ -11,8 +10,7 @@
     "status": "evaluated"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261010",
+    "cohort": "java",
     "project": "commons-csv",
     "fixed": "480b90febb39d7a3dd6f55d6082434ef09eb0b5f",
     "buggyParent": "e24dc316d471c7ad29384a976f8f2ba10375150a",
@@ -22,8 +20,7 @@
     "status": "evaluated"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261010",
+    "cohort": "java",
     "project": "commons-csv",
     "fixed": "6fd5179244556bc80a51720de15fe13d143d1717",
     "buggyParent": "d34604855225851091929b115ef0b71a34394c48",
@@ -34,8 +31,7 @@
     "reason": "Maven compilation/build failed: faster-java-external-validation-20261010/results/commons-csv/6fd51792/repaired/run1/maven.log"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261010",
+    "cohort": "java",
     "project": "javapoet",
     "fixed": "5dafdcb421fafc36a9db53c3106d7f183e23ea58",
     "buggyParent": "b68e867d44e3a24e2d954fec83ce8a5170a4a03b",
@@ -45,8 +41,7 @@
     "status": "evaluated"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261010",
+    "cohort": "java",
     "project": "javapoet",
     "fixed": "558401605880b7d636c4e41e3044c775d987a208",
     "buggyParent": "3ddde8f3ccb5182ce5da7fcca21997efe96028a0",
@@ -56,8 +51,7 @@
     "status": "evaluated"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261010",
+    "cohort": "java",
     "project": "javapoet",
     "fixed": "3829f2ca6f03a4b941fea41a1e2f4eead8f37bc1",
     "buggyParent": "0f93da9a3d9a1da8d29fc993409fcf83d40452bc",
@@ -67,8 +61,7 @@
     "status": "evaluated"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261010",
+    "cohort": "java",
     "project": "jackson-core",
     "fixed": "dc872737af7ff0120fa7025a43ffa5957b42e14e",
     "buggyParent": "931273f36e59f53dfc53960fbdcf88b203a36ebc",
@@ -79,8 +72,7 @@
     "reason": "Maven compilation/build failed: faster-java-external-validation-20261010/results/jackson-core/dc872737/repaired/run1/maven.log"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261010",
+    "cohort": "java",
     "project": "jackson-core",
     "fixed": "fc73bee380444112e9294545d4f0b66094884dab",
     "buggyParent": "ce70782781693c8f3410c1ea9f0c6a9f66750523",
@@ -90,8 +82,7 @@
     "status": "evaluated"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261010",
+    "cohort": "java",
     "project": "jackson-core",
     "fixed": "0a765c96f2b2bae77503069c2bb8d82dea948d73",
     "buggyParent": "d7d2c7a0f8833fa4c5a32da5b0304d230ec76ef8",
@@ -101,8 +92,7 @@
     "status": "evaluated"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "commons-csv",
     "fixed": "3b10c8f8ac64b75c573e0352dbb3d7ff9279d121",
     "buggyParent": "1d5dfcb8f65e25e0bc5c38628138435c3c756b98",
@@ -112,8 +102,7 @@
     "status": "evaluated"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "commons-csv",
     "fixed": "f8b80e83417c3c7eeed1282118f64fa0e85c4787",
     "buggyParent": "913e4a8b97fc4ef6a860cd94a996442ec86cc3a9",
@@ -124,8 +113,7 @@
     "reason": "Fixed compilation failed"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "commons-csv",
     "fixed": "16b9e2c79122f5a76863854cc4b33939da63710d",
     "buggyParent": "103995083c1cf8f30c02c8589a4e800f9ed303fa",
@@ -136,8 +124,7 @@
     "reason": "Maven compilation/build failed: faster-java-external-validation-20261020/results/commons-csv/16b9e2c7/repaired/run1/maven.log"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "javapoet",
     "fixed": "b66d3d543982755f1d2397066ac9ccbc5ba8c327",
     "buggyParent": "ff50d7b60ad15fed7ed294ca2295cb356cbc4273",
@@ -147,8 +134,7 @@
     "status": "evaluated"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "javapoet",
     "fixed": "4cd975b9649ec87f9a71ce48916fba8d9d460e4e",
     "buggyParent": "40dfa0cf36d844ca733bef0d4a61e87c9339af2c",
@@ -158,8 +144,7 @@
     "status": "evaluated"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "javapoet",
     "fixed": "08c7148ab302a364517f993c0fda33b1dca7bfe6",
     "buggyParent": "5f3b345be9bd8364268d6460424ae8cf59d087f0",
@@ -169,8 +154,7 @@
     "status": "evaluated"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "jackson-core",
     "fixed": "c4dd84e4d505baa90d8d1675c1f60f8d6ce90db8",
     "buggyParent": "35f3ab4d0512edc2d1ce13a7f43cd75b3c63c797",
@@ -180,8 +164,7 @@
     "status": "evaluated"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "jackson-core",
     "fixed": "d83ce8aec99f4e99afdf8fd172d77ce771f8ea35",
     "buggyParent": "eb477b85f74a2a1250ba6294cf4086d496830e27",
@@ -191,8 +174,7 @@
     "status": "evaluated"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "jackson-core",
     "fixed": "80ca2ef213713f85284fa3c7b8513bf7c69e8c08",
     "buggyParent": "b1391d36ec9d8a9272e4358888f8ce60e2d5f8d7",
@@ -202,8 +184,7 @@
     "status": "evaluated"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "commons-text",
     "fixed": "980791b69dc4cb1a639e835ea3b151d9d107ea7f",
     "buggyParent": "2f0052334cba8e793e9d864cb0f31f280b70e4a0",
@@ -214,8 +195,7 @@
     "reason": "Maven compilation/build failed: faster-java-external-validation-20261020/results/commons-text/980791b6/repaired/run1/maven.log"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "commons-text",
     "fixed": "7909652f51344c1206699518ae4cd510b8532765",
     "buggyParent": "7af39fb28d371bf1ca8aff63c5ddb71b9390e0de",
@@ -226,8 +206,7 @@
     "reason": "Maven compilation/build failed: faster-java-external-validation-20261020/results/commons-text/7909652f/repaired/run1/maven.log"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "commons-text",
     "fixed": "8587bb6f01521e794595df2ebb726ecc704f0076",
     "buggyParent": "5cdb77906c9c6a35b08190cbbc35e7bee4578d2a",
@@ -238,8 +217,7 @@
     "reason": "Maven compilation/build failed: faster-java-external-validation-20261020/results/commons-text/8587bb6f/repaired/run1/maven.log"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "commons-text",
     "fixed": "d3051739d9fc77890218a8dbebdc9560d12532a7",
     "buggyParent": "dba22a2f5b03d595c0d9ce681a1c3b2018a75f1d",
@@ -249,8 +227,7 @@
     "status": "evaluated"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "commons-text",
     "fixed": "e9273cd4bb3da622ed761c998a6fb6e731538e18",
     "buggyParent": "40061c701fa78c0808556ab98d6f68ccbe6728e6",
@@ -261,8 +238,7 @@
     "reason": "Fixed tests pass against buggy-parent production; no APFD denominator"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "commons-text",
     "fixed": "c9f92a02f8c0ddfc8e8f30fadf2ac932072ae284",
     "buggyParent": "804e4599bd63e4bb14c905613711eac8829e54fb",
@@ -272,8 +248,7 @@
     "status": "evaluated"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "commons-io",
     "fixed": "3d12a7b2d9396c4f643984c05686986d735e31c9",
     "buggyParent": "558e03e490f2f81c78bedb9b3d71dd55e75de5cb",
@@ -284,8 +259,7 @@
     "reason": "Maven compilation/build failed: faster-java-external-validation-20261020/results/commons-io/3d12a7b2/repaired/run1/maven.log"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "commons-io",
     "fixed": "a1f4d43253ac11abe8cf3ed53876dabc885d7b30",
     "buggyParent": "b2dbfb9bbec197bf57cca03f47253d9551769bf8",
@@ -296,8 +270,7 @@
     "reason": "Fixed control fails: ['org.apache.commons.io.input.CharSequenceInputStreamTest::testAvailable|java.lang.UnsupportedOperationException:']"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "commons-io",
     "fixed": "cbc5a146154ada255d491d6509497d0d57bad336",
     "buggyParent": "4271d0f15e0b675a83f20343eaa38fe642b09e65",
@@ -308,8 +281,7 @@
     "reason": "Fixed control fails: ['org.apache.commons.io.input.CharSequenceInputStreamTest::testAvailable|java.lang.UnsupportedOperationException:', 'org.apache.commons.io.input.CharSequenceInputStreamTest::testBufferedRead_AvailableCharset|java.lang.UnsupportedOperationException:']"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "commons-io",
     "fixed": "33a52972db9afbe9baf2be23d8faeeb9bab01ea7",
     "buggyParent": "016222a00fbcaf6870f4552d5f27b7a375412340",
@@ -320,8 +292,7 @@
     "reason": "Fixed tests pass on parent with matched en_US startup locale"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "commons-io",
     "fixed": "56708e632e69a889eec8bf926bb3551ad53ded86",
     "buggyParent": "1ef212e0629d8b19a3b974cbb428a1f000f1c540",
@@ -332,8 +303,7 @@
     "reason": "Fixed compilation failed"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-external-validation-20261020",
+    "cohort": "java",
     "project": "commons-io",
     "fixed": "afe78a030b57e3f74825e134d6615ef4878778cc",
     "buggyParent": "35ea189f533c703906d9f770dff684c4557b18a7",
@@ -343,8 +313,7 @@
     "status": "evaluated"
   },
   {
-    "cohort": "external-java-search",
-    "phase": "faster-java-dbutils-validation-20261020",
+    "cohort": "java",
     "project": "commons-dbutils",
     "fixed": "f8e826ec114e9d6f86f61676b4c106dc4260c736",
     "buggyParent": "802231417ea7f7e78568845be153e83fda526a31",
@@ -355,579 +324,435 @@
     "reason": "Maven compilation/build failed: faster-java-dbutils-validation-20261020/results/commons-dbutils/f8e826ec/repaired/run1/maven.log"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-1161eb7e05-038df57e36",
-    "status": "unstable-outcomes",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-unstable-outcomes"
+    "status": "unstable-outcomes"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-1161eb7e05-04047903dc",
-    "status": "unstable-outcomes",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-unstable-outcomes"
+    "status": "unstable-outcomes"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-1161eb7e05-07641f4d82",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-1161eb7e05-0ca282d2da",
-    "status": "unstable-outcomes",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-unstable-outcomes"
+    "status": "unstable-outcomes"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-1161eb7e05-110cc59e39",
-    "status": "unstable-outcomes",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-unstable-outcomes"
+    "status": "unstable-outcomes"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-1161eb7e05-127ba27292",
-    "status": "unstable-outcomes",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-unstable-outcomes"
+    "status": "unstable-outcomes"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-1161eb7e05-1a83782c09",
-    "status": "unstable-outcomes",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-unstable-outcomes"
+    "status": "unstable-outcomes"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-1161eb7e05-22a8c462ef",
-    "status": "unstable-outcomes",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-unstable-outcomes"
+    "status": "unstable-outcomes"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-403bd029e5-00b5d85f98",
-    "status": "evaluated",
-    "reason": "",
-    "granularityReplayStatus": "no-passing-control"
+    "status": "evaluated"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-403bd029e5-02aeff299c",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "no-passing-control"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-403bd029e5-0327996af9",
-    "status": "unstable-outcomes",
-    "reason": "",
-    "granularityReplayStatus": "no-passing-control"
+    "status": "unstable-outcomes"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-403bd029e5-0c55a6e2f8",
-    "status": "unstable-outcomes",
-    "reason": "",
-    "granularityReplayStatus": "no-passing-control"
+    "status": "unstable-outcomes"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-403bd029e5-11715e199b",
-    "status": "prior-control-failed",
-    "reason": "",
-    "granularityReplayStatus": "no-passing-control"
+    "status": "prior-control-failed"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-403bd029e5-1999a15b4d",
-    "status": "prior-control-failed",
-    "reason": "",
-    "granularityReplayStatus": "no-passing-control"
+    "status": "prior-control-failed"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-403bd029e5-314b561763",
-    "status": "unstable-outcomes",
-    "reason": "",
-    "granularityReplayStatus": "no-passing-control"
+    "status": "unstable-outcomes"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-403bd029e5-4cd45e719b",
-    "status": "unstable-outcomes",
-    "reason": "",
-    "granularityReplayStatus": "no-passing-control"
+    "status": "unstable-outcomes"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-66cfb8a357-00e4cc8f41",
-    "status": "prior-control-failed",
-    "reason": "",
-    "granularityReplayStatus": "no-passing-control"
+    "status": "prior-control-failed"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-66cfb8a357-019e5e6a63",
-    "status": "prior-control-failed",
-    "reason": "",
-    "granularityReplayStatus": "no-passing-control"
+    "status": "prior-control-failed"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-66cfb8a357-024ed847bc",
-    "status": "prior-control-failed",
-    "reason": "",
-    "granularityReplayStatus": "no-passing-control"
+    "status": "prior-control-failed"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-66cfb8a357-0521242817",
-    "status": "prior-control-failed",
-    "reason": "",
-    "granularityReplayStatus": "no-passing-control"
+    "status": "prior-control-failed"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-66cfb8a357-11664eb454",
-    "status": "prior-control-failed",
-    "reason": "",
-    "granularityReplayStatus": "no-passing-control"
+    "status": "prior-control-failed"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-66cfb8a357-1628650a0f",
-    "status": "prior-control-failed",
-    "reason": "",
-    "granularityReplayStatus": "no-passing-control"
+    "status": "prior-control-failed"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-66cfb8a357-1e6c9510ca",
-    "status": "prior-control-failed",
-    "reason": "",
-    "granularityReplayStatus": "no-passing-control"
+    "status": "prior-control-failed"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "h3",
     "case": "mutation-66cfb8a357-3e5bb49a20",
-    "status": "prior-control-failed",
-    "reason": "",
-    "granularityReplayStatus": "no-passing-control"
+    "status": "prior-control-failed"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-5bdf26c702-06f613e6c7",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-5bdf26c702-2111841a78",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-5bdf26c702-38059962e6",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-5bdf26c702-389b2c7b00",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-5bdf26c702-54d6662446",
-    "status": "evaluated",
-    "reason": "",
-    "granularityReplayStatus": "executed"
+    "status": "evaluated"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-5bdf26c702-8b32971db5",
-    "status": "evaluated",
-    "reason": "",
-    "granularityReplayStatus": "executed"
+    "status": "evaluated"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-5bdf26c702-a7b369c113",
-    "status": "evaluated",
-    "reason": "",
-    "granularityReplayStatus": "executed"
+    "status": "evaluated"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-5bdf26c702-b641113201",
-    "status": "evaluated",
-    "reason": "",
-    "granularityReplayStatus": "executed"
+    "status": "evaluated"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-70eacb6749-0015ed5d0c",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-70eacb6749-01c0170397",
-    "status": "evaluated",
-    "reason": "",
-    "granularityReplayStatus": "executed"
+    "status": "evaluated"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-70eacb6749-09993d8205",
-    "status": "evaluated",
-    "reason": "",
-    "granularityReplayStatus": "executed"
+    "status": "evaluated"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-70eacb6749-0e55f6c3cb",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-70eacb6749-15b4c1bdc2",
-    "status": "evaluated",
-    "reason": "",
-    "granularityReplayStatus": "executed"
+    "status": "evaluated"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-70eacb6749-1fd130fca9",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-70eacb6749-55b635b242",
-    "status": "evaluated",
-    "reason": "",
-    "granularityReplayStatus": "executed"
+    "status": "evaluated"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-70eacb6749-7bcef5ba0a",
-    "status": "evaluated",
-    "reason": "",
-    "granularityReplayStatus": "executed"
+    "status": "evaluated"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-f48737e9aa-0000ad6433",
-    "status": "evaluated",
-    "reason": "",
-    "granularityReplayStatus": "executed"
+    "status": "evaluated"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-f48737e9aa-00c1649345",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-f48737e9aa-025f523ecf",
-    "status": "evaluated",
-    "reason": "",
-    "granularityReplayStatus": "executed"
+    "status": "evaluated"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-f48737e9aa-04d94c698d",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-f48737e9aa-0e9e86ae48",
-    "status": "evaluated",
-    "reason": "",
-    "granularityReplayStatus": "executed"
+    "status": "evaluated"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-f48737e9aa-189922109b",
-    "status": "evaluated",
-    "reason": "",
-    "granularityReplayStatus": "executed"
+    "status": "evaluated"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-f48737e9aa-20153c779c",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "pinia",
     "case": "mutation-f48737e9aa-4532608aa6",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-10dda3a3a4-02398cced8",
-    "status": "evaluated",
-    "reason": "",
-    "granularityReplayStatus": "executed"
+    "status": "evaluated"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-10dda3a3a4-027b18c228",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-10dda3a3a4-070f6c515b",
-    "status": "evaluated",
-    "reason": "",
-    "granularityReplayStatus": "executed"
+    "status": "evaluated"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-10dda3a3a4-12a0e53006",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-10dda3a3a4-167c67f14c",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-10dda3a3a4-1efcda9d71",
-    "status": "evaluated",
-    "reason": "",
-    "granularityReplayStatus": "executed"
+    "status": "evaluated"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-10dda3a3a4-2136f55765",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-10dda3a3a4-d058a60acc",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-284243fb0d-00989c21a5",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-284243fb0d-012bac18e3",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-284243fb0d-01934cf453",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-284243fb0d-0338a1be21",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-284243fb0d-14561c6b9e",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-284243fb0d-153fcdd4cf",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-284243fb0d-218e1ceea0",
-    "status": "evaluated",
-    "reason": "",
-    "granularityReplayStatus": "executed"
+    "status": "evaluated"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-284243fb0d-31ebe644ed",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-cc4cd4ee9c-043981348a",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-cc4cd4ee9c-04525b97a1",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-cc4cd4ee9c-0623b25447",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-cc4cd4ee9c-11cc7f1c77",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-cc4cd4ee9c-13e6313879",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-cc4cd4ee9c-1aeaa74a7e",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-cc4cd4ee9c-1e1f375ee5",
-    "status": "evaluated",
-    "reason": "",
-    "granularityReplayStatus": "executed"
+    "status": "evaluated"
   },
   {
-    "cohort": "javascript-mutation-search",
+    "cohort": "javascript",
     "project": "zod",
     "case": "mutation-cc4cd4ee9c-6dd093c58f",
-    "status": "surviving-mutation",
-    "reason": "",
-    "granularityReplayStatus": "selection-only-original-surviving-mutation"
+    "status": "surviving-mutation"
   }
 ]

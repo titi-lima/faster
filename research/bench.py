@@ -34,7 +34,6 @@ def main():
     parser.add_argument('--cohort')
     parser.add_argument('--project')
     parser.add_argument('--case')
-    parser.add_argument('--partition', choices=['development', 'outside-jsoup'])
     parser.add_argument('--aggregate', choices=['project', 'cohort'], default='project')
     parser.add_argument('--left')
     parser.add_argument('--right')
@@ -73,8 +72,7 @@ def main():
     else:
         cases = [c for c in cases if (not args.cohort or c['cohort'] == args.cohort)
                  and (not args.project or c['project'] == args.project)
-                 and (not args.case or c['case'] == args.case)
-                 and (not args.partition or c.get('partition') == args.partition)]
+                 and (not args.case or c['case'] == args.case)]
         require(bool(cases), 'No cases match the filter')
         if args.action == 'summarize':
             result = summarize(cases, args.aggregate)

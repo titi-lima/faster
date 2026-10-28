@@ -43,15 +43,15 @@ def main():
             require(affected == recorded['affected'], f"Method affectedness drift: {pid}/{rev}/{feature['id']}")
             checked += 1
         require(len(features) == len(expected), 'Method universe changed')
-        for label, directory in [('file', old), ('method', method / 'results' / phase / pid / rev[:8])]:
-            output = out / f'{phase}-{pid}-{rev[:8]}-{label}.json'
-            subprocess.run(['node', '--import', 'tsx', str(ROOT / 'adapters/order.ts'),
-                            str(directory / 'features.json'), str(output)], cwd=ROOT.parent, check=True)
-            actual, frozen = read(output), read(directory / 'frozen-orders.json')
-            for key in ['order', 'oldOrder', 'baseline', 'fastOrder']:
-                require(actual[key] == frozen[key], f'{label} ordering drift: {pid}/{rev}/{key}')
+        directory = method / 'results' / phase / pid / rev[:8]
+        output = out / f'{phase}-{pid}-{rev[:8]}.json'
+        subprocess.run(['node', '--import', 'tsx', str(ROOT / 'adapters/order.ts'),
+                        str(directory / 'features.json'), str(output)], cwd=ROOT.parent, check=True)
+        actual, frozen = read(output), read(directory / 'frozen-orders.json')
+        for key in ['order', 'fastOrder']:
+            require(actual[key] == frozen[key], f'Ordering drift: {pid}/{rev}/{key}')
     print(json.dumps({'cases': len(plan['cases']), 'featureObservations': checked,
-                      'orderingReplays': len(plan['cases']) * 2, 'allMatch': True}, indent=2))
+                      'orderingReplays': len(plan['cases']), 'allMatch': True}, indent=2))
 
 
 if __name__ == '__main__':

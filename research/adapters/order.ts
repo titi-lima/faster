@@ -39,24 +39,10 @@ async function main() {
     + (!files[i].known || files[i].testChanged ? 0 : files[i].affected ? 1 : 2)
   const order = [...fastOrder].sort((a, b) => bucket(a) - bucket(b) || scores[b] - scores[a])
   const selected = new Set(indices.filter(i => files[i].failed || !files[i].known || files[i].testChanged || files[i].affected))
-  // Historical single-project comparator, retained to reproduce earlier studies.
-  const baseline = [...indices].sort((a, b) => {
-    const left = files[a]
-    const right = files[b]
-    if (!left.known || !right.known) {
-      return right.bytes - left.bytes
-    }
-    return Number(right.failed) - Number(left.failed) || right.duration! - left.duration!
-  })
-  const oldOrder = files.some(f => f.known)
-    ? [...baseline].sort((a, b) => Number(files[b].affected) - Number(files[a].affected))
-    : getSimilarityOrder(baseline.map(i => files[i].source)).map(i => baseline[i])
   await writeFile(output, `${JSON.stringify({
     order,
     selectedOrder: order.filter(i => selected.has(i)),
     fastOrder,
-    oldOrder,
-    baseline,
     buckets: indices.map(bucket),
     scores,
     frozenUTC: new Date().toISOString(),

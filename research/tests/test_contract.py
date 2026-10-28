@@ -117,21 +117,21 @@ class RecordedEvidenceTests(unittest.TestCase):
         with gzip.open(ROOT / 'data/cases.jsonl.gz', 'rt') as stream:
             cls.cases = [json.loads(line) for line in stream]
 
-    def test_all_576_cases_and_known_project_results(self):
-        self.assertEqual(len(self.cases), 576)
-        java = [c for c in self.cases if c['cohort'] == 'external-java-paired']
+    def test_recorded_current_strategy_results(self):
+        self.assertEqual(len(self.cases), 35)
+        java = [c for c in self.cases if c['cohort'] == 'java']
         metrics = [case_metrics(c) for c in java]
         self.assertEqual(len(metrics), 17)
-        self.assertAlmostEqual(mean(m['FASTER APFD']['APFDf'] for m in metrics), .9182929500773408)
-        self.assertAlmostEqual(mean(m['FASTER method selected']['skippedFraction'] for m in metrics), .23214942654456894)
-        self.assertTrue(all(m['FASTER method selected']['revealingUnitRecall'] == 1 for m in metrics))
-        pinia = [case_metrics(c) for c in self.cases if c['cohort'] == 'javascript-paired' and c['project'] == 'pinia']
-        self.assertAlmostEqual(mean(m['FASTER function selected']['APFDf'] for m in pinia), .9479638009049773)
+        self.assertAlmostEqual(mean(m['FASTER']['APFDf'] for m in metrics), .9182929500773408)
+        self.assertAlmostEqual(mean(m['FASTER']['skippedFraction'] for m in metrics), .23214942654456894)
+        self.assertTrue(all(m['FASTER']['revealingUnitRecall'] == 1 for m in metrics))
+        pinia = [case_metrics(c) for c in self.cases if c['cohort'] == 'javascript' and c['project'] == 'pinia']
+        self.assertAlmostEqual(mean(m['FASTER']['APFDf'] for m in pinia), .9479638009049773)
 
     def test_cross_cohort_pooling_rejected(self):
-        mixed = [self.cases[0], next(c for c in self.cases if c['cohort'] == 'external-java-paired')]
+        mixed = [self.cases[0], next(c for c in self.cases if c['cohort'] == 'javascript')]
         with self.assertRaisesRegex(ValueError, 'one cohort'):
-            compare(mixed, 'FASTER APFD', 'Previous FASTER', draws=100)
+            compare(mixed, 'FASTER', 'FASTER', draws=100)
 
 
 if __name__ == '__main__':

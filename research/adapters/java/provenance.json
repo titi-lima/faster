@@ -7,6 +7,6 @@
   "refinementExtractedFrom": {
     "source": "scripts/run.py",
     "SHA256": "362cd29ada5b0e9e631e66527abdccc8206a14d2895b4b74ff4e34035dafe751",
-    "adaptation": "Portable paths and CLI; missing changed-dependency attribution additionally falls back to coarse affectedness. All 948 original feature observations matched."
+    "adaptation": "Portable paths and CLI; missing change attribution keeps tests eligible."
   }
 }
