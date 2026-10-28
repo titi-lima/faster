@@ -1,0 +1,13 @@
+{
+  "sourceRevision": "cd9dd9d9cc31a4d32eb9d2abaa3154efc553bf84",
+  "files": {
+    "packages/vitest/src/node/sequencers/FasterSequencer.ts": "630956f23d264328d8cf10edddbde41ca830e0f32ed47c80709881adc3de71ff",
+    "packages/vitest/src/node/faster/apfdPriority.ts": "0189735db47facf1990fb814ecaea2dd8fac7626c2eaa8d133262593b8a208a6",
+    "packages/runner/src/utils/priority.ts": "973916611bb844d2c9bca50b1d57fbaba54f264921c1c322b7a35453fc9fc5a9",
+    "packages/vitest/src/node/faster/sourceChanges.ts": "4a550082a188e384a61d2d426c9c93f4f15fde7e4119c8832d7c8662c4309318",
+    "packages/vitest/src/node/faster/affectedTests.ts": "a78115b3c1d36487599b2f2b49343e740cb909719ce8fe8d88d240cda315a7f8",
+    "packages/vitest/src/node/faster/functionCoverage.ts": "1a0f2db3b167c5e96ad9c38ed87001c7ab58928d0b7b62b3a8fab2539eca7f65",
+    "packages/vitest/src/node/specifications.ts": "72f48ab20b43014c2d529c85236cdc1b96217d3c803556e43ce1e228bfc266b1",
+    "packages/vitest/src/node/faster/priorityManifest.ts": "ce7ce56eaf086d979e7470f4bc8a269091059ed9cc19c88187716430b6a3ced3"
+  }
+}

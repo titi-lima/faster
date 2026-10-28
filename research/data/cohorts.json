@@ -1,0 +1,24 @@
+{
+  "java": {
+    "cases": 17,
+    "projects": [
+      "commons-csv",
+      "commons-io",
+      "commons-text",
+      "jackson-core",
+      "javapoet"
+    ],
+    "faultModel": "Parent production with repaired tests",
+    "rankEvidence": "offline-replay"
+  },
+  "javascript": {
+    "cases": 18,
+    "projects": [
+      "pinia",
+      "zod"
+    ],
+    "faultModel": "Seeded AST mutations at Git snapshots",
+    "rankEvidence": "native-serial",
+    "developmentCohort": true
+  }
+}

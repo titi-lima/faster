@@ -517,6 +517,9 @@ export const cliOptionsConfig: VitestCLIOptions = {
         argument: '<path>',
         normalize: true,
       },
+      selectAffected: {
+        description: 'Run only changed, unknown, affected or previously failing files since their previous runs (default: false)',
+      },
       immediateFailureOutput: {
         description: 'Print a failing test and its output as soon as it finishes (default: true)',
       },

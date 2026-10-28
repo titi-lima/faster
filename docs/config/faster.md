@@ -5,57 +5,32 @@ outline: deep
 
 # faster
 
-- **Type:** `boolean | FasterOptions`
-- **Default:** `true`
-- **CLI:** `--faster`, `--no-faster`
-
-Enables Faster's built-in test prioritization and immediate failure feedback. Faster keeps the Vitest API and configuration surface intact; this option is the only additional behavior.
-
-With the default `optimizeFor: 'dx'`, Faster schedules files in two buckets:
-
-1. Test files affected by source changes since the previous completed test run.
-2. The remaining test files.
-
-Each bucket puts cached failures before its other files. Faster computes one deterministic FAST-pw-style MinHash order over the full file set, then preserves that relative order inside each bucket. Source reads and changed-source detection run concurrently; shared dependency hashes are reused within that scheduling pass. The same FAST ordering applies on cold and warm runs. Prior durations do not determine file order.
-
-An optional manifest supplies higher-priority scores within each bucket on every run. Equal scores and unscored files use the configured objective's ordering. Collected tests and suites use manifest scores and name-based similarity within each file. For sets larger than 256, the built-in similarity algorithm samples `sqrt(n)` candidates per selection. Project groups, project order and isolation boundaries remain in control.
+FASTER prioritizes tests using source changes, previous failures and FAST
+similarity. Function coverage identifies affected tests automatically. The full
+suite runs unless selection is enabled.
 
 ```ts
 import { defineConfig } from 'faster/config'
 
 export default defineConfig({
   test: {
-    faster: {
-      optimizeFor: 'dx',
-      changed: true,
-      priorityFile: '.faster/priorities.json',
-      immediateFailureOutput: true,
-    },
+    faster: { optimizeFor: 'apfd', selectAffected: true },
   },
 })
 ```
 
-Faster does not filter the suite. Use Vitest's existing [`changed`](/guide/cli#changed) or `related` options when you want to run only affected tests.
+Install matching `@vitest/coverage-v8`. Change tracking collects V8 coverage;
+coverage reports are generated only when ordinary reporting is enabled. Isolated
+Node execution supports caller attribution. Missing observations or structural
+changes keep tests eligible.
 
 ## faster.enabled
 
 - **Type:** `boolean`
 - **Default:** `true`
-- **CLI:** `--faster.enabled`, `--faster.enabled=false`
+- **CLI:** `--faster.enabled`, `--no-faster`
 
-Enables or disables all Faster-specific behavior. Setting the top-level `faster` option to a boolean is equivalent to setting this field.
-
-## faster.changed
-
-- **Type:** `boolean | string`
-- **Default:** `true`
-- **CLI:** `--faster.changed[=<revision>]`, `--faster.changed=false`
-
-Compares source and dependency snapshots from the previous completed run. Faster captures the sources before execution and saves snapshots only for completed test files, including failed files. Interrupted runs retain the previous source history. Vite's module graph supplies the dependencies. Edits and reverts both count as changes relative to that run. A string additionally includes changes since that Git revision.
-
-Source history lives in the configured results-cache directory and is cleared by `--clearCache`. Setting `faster: false`, `faster.changed: false` or `cache: false` disables source-history persistence. Malformed or incompatible history is treated as a cold start. Projects with Faster disabled keep Vitest's file ordering.
-
-Set this to `false` to disable the changed-source bucket while retaining built-in and manifest ordering plus immediate failures.
+Enable FASTER. `faster: false` disables its behavior.
 
 ## faster.optimizeFor
 
@@ -63,15 +38,32 @@ Set this to `false` to disable the changed-source bucket while retaining built-i
 - **Default:** `'dx'`
 - **CLI:** `--faster.optimizeFor=apfd`
 
-`dx` puts affected files before unchanged files, including unchanged cached failures, and retains the global FAST order within each bucket.
+`dx` runs affected tests first, with previous failures first inside each group.
+`apfd` runs previous failures first; each failure group orders edited/unknown,
+then affected, then remaining tests. Within those buckets, higher
+`durationRank + 0.1 * sizeRank` scores precede lower scores; FAST breaks ties.
+This is an empirical fault-detection heuristic, not a runtime objective.
 
-`apfd` puts all cached failing files first. Within each failure-status group it orders directly edited or newly added tests before transitively affected tests, then the remaining files. Within those buckets it combines normalized ranks of previous duration and current source size: `durationRank + 0.1 * sizeRank`, with higher scores first. Ranks use the distinct values within each project; missing durations have rank zero. This uses prior duration as a fault-revelation signal, rather than an execution-time objective. Manifest scores take precedence, and FAST breaks remaining ties. Project grouping and explicit custom sequencers remain in control.
+## faster.changed
 
-```bash
-faster run --faster.optimizeFor=apfd --no-file-parallelism --maxWorkers=1
-```
+- **Type:** `boolean | string`
+- **Default:** `true`
+- **CLI:** `--faster.changed[=<revision>]`, `--faster.changed=false`
 
-This is a heuristic for experiments, not a guarantee of optimal APFD. Ranking uses current source bytes and changes plus results from prior runs; current outcomes never enter the ranking. Cold starts have no duration history, so APFD favors larger files while DX uses FAST. Stale failures and unrelated test edits can delay new faults. The policy operates at file level; test and suite ordering within a file is unchanged. Use serial execution for position-based metrics; parallel feedback needs event timestamps.
+Compare against each test's previous completed run. A revision additionally
+includes changes since that Git revision. `false` disables change tracking.
+History is stored in the results cache and cleared by `--clearCache`.
+
+## faster.selectAffected
+
+- **Type:** `boolean`
+- **Default:** `false`
+- **CLI:** `--faster.selectAffected`
+
+Run affected, edited, unknown or previously failing tests. Requires
+`faster.changed`. Cold runs execute everything; skipped tests keep their prior
+observations. Revision-based selection and explicit full-rerun triggers preserve
+the relevant suite. An unchanged suite can succeed with no selected tests.
 
 ## faster.priorityFile
 
@@ -79,34 +71,16 @@ This is a heuristic for experiments, not a guarantee of optimal APFD. Ranking us
 - **Default:** `'.faster/priorities.json'`
 - **CLI:** `--faster.priorityFile=<path>`
 
-Path to an optional FAST-produced JSON manifest, resolved from the project root. Test identifiers use the portable form `<relative-test-file>::<suite>::<test>` and higher finite scores run first. Any unscored files and tests fall back to Faster's built-in lazy MinHash order.
-
-```json
-{
-  "schemaVersion": 1,
-  "tests": {
-    "src/cart.test.ts::checkout::rejects an expired card": {
-      "score": 0.982,
-      "signals": {
-        "similarity": 0.91,
-        "failureHistory": 0.72
-      }
-    },
-    "src/cart.test.ts::checkout::accepts a valid card": 0.73
-  }
-}
-```
-
-The optional `signals` object is retained for producer diagnostics; scheduling uses `score`. Missing manifests are accepted because the built-in prioritizer needs no generated artifacts. Malformed manifests fail fast with the manifest path and invalid field.
+Optional JSON producer scores: `{"schemaVersion":1,"tests":{"path.test.ts":0.9}}`.
+Higher scores take precedence inside a bucket. Identifiers can include
+`::suite::test`; missing manifests are accepted and invalid scores fail fast.
 
 ## faster.immediateFailureOutput
 
 - **Type:** `boolean`
 - **Default:** `true`
-- **CLI:** `--faster.immediateFailureOutput`, `--faster.immediateFailureOutput=false`
+- **CLI:** `--faster.immediateFailureOutput=false`
 
-Prints a failed test, its captured console output, assertion diff, and stack as soon as the test result reaches the reporter. Faster remembers immediately printed failures and does not repeat their full error block at the end of the run.
-
-## Custom sequencers
-
-An explicit [`sequence.sequencer`](/config/sequence#sequence-sequencer) continues to control file ordering. Built-in and manifest priorities still order tests within each file. This preserves existing custom sequencing behavior.
+Print each failure and captured output when it completes. Explicit custom
+sequencers continue to control ordering. For position-based research metrics,
+use serial execution with `--no-file-parallelism --maxWorkers=1`.

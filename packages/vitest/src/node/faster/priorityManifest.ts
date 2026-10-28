@@ -32,6 +32,8 @@ export interface FasterOptions {
    * @default true
    */
   changed?: boolean | string
+  /** Run only changed, unknown, affected or previously failing test files. */
+  selectAffected?: boolean
   /**
    * Optional producer scores within each scheduling bucket. Equal scores and
    * unscored files use the selected objective, with FAST breaking remaining ties.
@@ -44,6 +46,7 @@ export interface ResolvedFasterOptions {
   enabled: boolean
   optimizeFor: 'dx' | 'apfd'
   changed: boolean | string
+  selectAffected: boolean
   priorityFile: string
   immediateFailureOutput: boolean
   priorities: TestPriorityMap
@@ -55,6 +58,9 @@ export function resolveFasterOptions(
 ): ResolvedFasterOptions {
   const normalized = typeof options === 'object' ? options : {}
   const optimizeFor = normalized.optimizeFor ?? 'dx'
+  if (normalized.selectAffected && normalized.changed === false) {
+    throw new TypeError('faster.selectAffected requires faster.changed to be enabled.')
+  }
   if (optimizeFor !== 'dx' && optimizeFor !== 'apfd') {
     throw new TypeError(`Invalid faster.optimizeFor: expected "dx" or "apfd", received "${optimizeFor}".`)
   }
@@ -70,6 +76,7 @@ export function resolveFasterOptions(
     enabled,
     optimizeFor,
     changed: normalized.changed ?? true,
+    selectAffected: normalized.selectAffected ?? false,
     priorityFile,
     immediateFailureOutput: normalized.immediateFailureOutput ?? true,
     priorities: enabled ? loadPriorityManifest(priorityFile) : {},
