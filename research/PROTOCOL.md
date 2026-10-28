@@ -118,3 +118,12 @@ matches bytes; it does not by itself prove that an experimental protocol is
 unbiased. Newly generated evidence belongs under `research/artifacts/` with its
 own manifest and attempt ledger. Do not replace the recorded cohorts when a
 future experiment produces a more favorable result.
+
+New Vitest reporter outputs record initialization/start and completion timestamps;
+the importer requires a feature freeze no later than that recorded start. Older
+reports lack the start timestamp. Their `timingAudit` explicitly records
+`legacy-end-only` and `freezeBeforeStartVerified: false`; checking completion
+alone is not represented as proof of a pre-execution freeze. Reimporting the
+external Java/JavaScript records now independently reruns the shared native
+membership/outcome checks from raw records, rather than relying only on previous
+summary flags. This audit does not execute the projects again.

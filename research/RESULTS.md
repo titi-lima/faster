@@ -60,8 +60,8 @@ are always retained. The two studies therefore answer different questions.
 
 The 541-case file-granularity replay spans all 12 subjects; 93 Jsoup targets were
 available during tuning. The 448 outside-Jsoup cases have mean FASTER APFDf
-0.9354. This workspace recomputes deterministic orders from their recorded
-permutations and labels. It retains the other policies' reported metrics as
+0.9354. This workspace recomputes scores from three recorded deterministic
+permutations and their labels. It retains the other policies' reported metrics as
 reference evidence rather than claiming to reconstruct missing permutations.
 The original 541 cases have **not** been rerun at method granularity.
 

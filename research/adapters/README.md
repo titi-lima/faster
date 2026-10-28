@@ -28,7 +28,7 @@ environment and setup files. Configure isolated Node execution with
 `fileParallelism: false`, `maxWorkers: 1`, and the research reporter
 `research/adapters/vitest-reporter.ts` (use an absolute reporter path when the
 project root is outside this checkout). Set `FASTER_RESEARCH_OUTPUT` to a fresh
-output path. The reporter rejects parallel scheduling because module completion
+output path. The reporter records start/end timestamps and rejects parallel scheduling because module completion
 order is not a valid substitute for serial start order.
 
 The relevant configuration is:

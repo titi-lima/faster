@@ -1,5 +1,6 @@
 import copy
 import gzip
+import hashlib
 import json
 import sys
 import tempfile
@@ -13,9 +14,32 @@ from benchmark.metrics import case_metrics, compare, score, validate
 from benchmark.native import verify_subset, vitest_records
 from adapters.surefire import read_reports
 from adapters.java.refine import refine, scope_for
+from benchmark.import_evidence import audit_timing
+from bench import validate_core
 
 
 class ContractTests(unittest.TestCase):
+    def test_freeze_must_precede_start_when_start_is_recorded(self):
+        execution = {'startedUTC': '2026-10-28T10:00:00Z', 'endedUTC': '2026-10-28T10:02:00Z'}
+        with self.assertRaisesRegex(ValueError, 'precede execution start'):
+            audit_timing('2026-10-28T10:01:00Z', execution)
+        self.assertTrue(audit_timing('2026-10-28T09:59:00Z', execution)['freezeBeforeStartVerified'])
+        del execution['startedUTC']
+        self.assertEqual(audit_timing('2026-10-28T10:01:00Z', execution),
+                         {'freezeBeforeStartVerified': False, 'basis': 'legacy-end-only'})
+
+    def test_core_map_rejects_source_drift(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'policy.ts').write_text('before')
+            mapping = root / 'core.json'
+            mapping.write_text(json.dumps({'sourceRevision': 'fixture', 'files': {
+                'policy.ts': hashlib.sha256(b'before').hexdigest()}}))
+            self.assertEqual(validate_core(root, mapping)['filesVerified'], 1)
+            (root / 'policy.ts').write_text('after')
+            with self.assertRaisesRegex(ValueError, 'Core source hash mismatch'):
+                validate_core(root, mapping)
+
     def test_selection_uses_full_universe_and_misses_are_zero(self):
         result = score([[4], []], [4], 10)
         self.assertEqual(result['APFDf'], .475)

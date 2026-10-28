@@ -6,6 +6,7 @@ import { dirname, relative } from 'node:path'
 export default class ResearchReporter implements Reporter {
   private root = ''
   private output = ''
+  private startedUTC = ''
   private order: string[] = []
   private modules: { file: string; state: string; errors: unknown[] }[] = []
   private cases: { file: string; name: string; state: string }[] = []
@@ -21,6 +22,7 @@ export default class ResearchReporter implements Reporter {
     }
     this.root = ctx.config.root
     this.output = process.env.FASTER_RESEARCH_OUTPUT
+    this.startedUTC = new Date().toISOString()
   }
 
   onTestModuleStart(module: TestModule) {
@@ -47,6 +49,7 @@ export default class ResearchReporter implements Reporter {
       modules: this.modules,
       cases: this.cases,
       errors: [...errors.map(error => ({ name: error.name, message: error.message })), ...this.violations],
+      startedUTC: this.startedUTC,
       endedUTC: new Date().toISOString(),
     }, null, 2)}\n`)
   }

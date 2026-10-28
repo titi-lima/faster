@@ -6,13 +6,26 @@ import gzip
 import hashlib
 import json
 from collections import Counter
+from datetime import datetime
 from pathlib import Path
 
 from .metrics import case_metrics, require, validate
+from .native import verify_subset, vitest_records
 
 APFD_COMMIT = 'c3a28ac84309d5df30d70c29ac60aefe92447ff5'
 FUNCTION_COMMIT = 'd3e3811df4f23dc73de56a32728c044a3b7de6d5'
 FEATURE_KEYS = ('id', 'path', 'bytes', 'duration', 'failed', 'known', 'testChanged', 'affected', 'coarseAffected')
+
+
+def audit_timing(frozen_utc, execution):
+    parse = lambda value: datetime.fromisoformat(value.replace('Z', '+00:00'))
+    frozen, ended = parse(frozen_utc), parse(execution['endedUTC'])
+    require(frozen <= ended, 'Feature freeze follows execution completion')
+    started = execution.get('startedUTC')
+    if started:
+        require(frozen <= parse(started) <= ended, 'Feature freeze must precede execution start')
+    return {'freezeBeforeStartVerified': bool(started),
+            'basis': 'native-start-and-end' if started else 'legacy-end-only'}
 
 
 class Importer:
@@ -102,6 +115,12 @@ class Importer:
             c['provenance'] = {'result': (old / 'result.json').relative_to(self.root).as_posix(),
                                'methodResult': (fine / 'result.json').relative_to(self.root).as_posix(),
                                'nativeSubsetValidation': row['validation']}
+            oracle = self.read(old / result.get('repairedEvidenceRoot', 'repaired') / 'run1/records.json')
+            control = self.read(old / 'fixed/records.json')
+            c['provenance']['reimportedNativeAudit'] = {
+                label: verify_subset(oracle, self.read(fine / ('native-' + label) / 'records.json'),
+                                     [files[i]['id'] for i in selected], control)
+                for label, selected in [('file', coarse_set), ('method', fine_set)]}
             self.read(fine / 'freeze-seal.json')
             self.check_reference(c, result['metrics'])
             computed = case_metrics(c)
@@ -127,6 +146,12 @@ class Importer:
                           'native-serial', 'seeded-ast-mutation', FUNCTION_COMMIT)
             c['mutation'] = result['mutation']
             c['policies'] = {}
+            original = self.root / 'faster-external-validation-20261009/runs' / row['project']
+            oracle = vitest_records(self.read(original / row['case'] / 'apfd/execution.json'))
+            attempt = next(i + 1 for i, trial in enumerate(result['control']['attempts']) if trial['passes'])
+            control_case = 'control-' + result['mutation']['revision'][:12] + '-' + str(attempt)
+            control = vitest_records(self.read(root / 'runs' / row['project'] / control_case / 'warm/execution.json'))
+            timing, native = {}, {}
             for label, subdir, selected, expected_rank in [
                 ('FASTER file selected', 'baseline-selected', f['baselineSelected'], row['coarseRank']),
                 ('FASTER function selected', 'selected', f['selected'], row['functionRank']),
@@ -134,12 +159,14 @@ class Importer:
                 execution = self.read(dest / subdir / 'execution.json')
                 require(not execution['errors'], 'Native JavaScript run has unhandled errors')
                 require(set(execution['order']) == set(selected), 'Native selection mismatch')
-                require(f['frozenUTC'] < execution['endedUTC'], 'Features not frozen before run ended')
+                timing[label] = audit_timing(f['frozenUTC'], execution)
+                native[label] = verify_subset(oracle, vitest_records(execution), selected, control)
                 c['policies'][label] = [[ids.index(v) for v in execution['order']]]
                 require(case_metrics(c)[label]['meanFirstFailureRankWhenDetected'] == expected_rank, 'Native rank drift')
             require(row['allOriginalFaultIdentitiesRetained'] and row['matchingSelectedMethodMembership'], 'Fault identity validation missing')
             c['provenance'] = {'result': (root / 'results' / row['project'] / (row['case'] + '.json')).relative_to(self.root).as_posix(),
                                'membershipAndFailureIdentityAudit': 'faster-function-selection-20261021/scripts/analyze.py',
+                               'reimportedNativeAudit': native, 'timingAudit': timing,
                                'developmentCohort': True}
             cases.append(validate(c))
         return cases

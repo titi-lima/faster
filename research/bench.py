@@ -11,6 +11,16 @@ from benchmark.metrics import case_metrics, compare, require, summarize, validat
 ROOT = Path(__file__).resolve().parent
 
 
+def validate_core(repository, map_path):
+    recorded = json.loads(map_path.read_text())
+    repository = repository.resolve()
+    for relative, expected in recorded['files'].items():
+        source = (repository / relative).resolve()
+        require(source.is_relative_to(repository), 'Core source outside repository')
+        require(hashlib.sha256(source.read_bytes()).hexdigest() == expected, f'Core source hash mismatch: {relative}')
+    return {'sourceRevision': recorded['sourceRevision'], 'filesVerified': len(recorded['files'])}
+
+
 def load_cases(path):
     opener = gzip.open if path.suffix == '.gz' else open
     with opener(path, 'rt', encoding='utf8') as stream:
@@ -48,7 +58,11 @@ def main():
         require(len(cases) == manifest['caseCount'], 'Dataset case count mismatch')
         require(hashlib.sha256((args.data.parent / 'attempts.json').read_bytes()).hexdigest()
                 == manifest['attemptsSHA256'], 'Attempt ledger hash mismatch')
-        result = {'valid': True, 'cases': len(cases), 'cohorts': manifest['cohortCounts']}
+        from collections import Counter
+        counts = dict(Counter(c['cohort'] for c in cases))
+        require(counts == manifest['cohortCounts'], 'Dataset cohort counts mismatch')
+        result = {'valid': True, 'cases': len(cases), 'cohorts': counts,
+                  'core': validate_core(ROOT.parent, ROOT / 'core-map.json')}
         if args.evidence_root:
             evidence = args.evidence_root.resolve()
             for relative, expected in manifest['sources'].items():

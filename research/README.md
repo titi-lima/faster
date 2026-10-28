@@ -39,7 +39,7 @@ revealing units, frozen/observed orders, implementation revision and evidence
 type. Summaries stay separated by cohort and project. `compare` refuses to pool
 cohorts and requires both policies on every included case.
 
-The 541-case dataset recomputes the three deterministic ordering policies. Its
+The 541-case dataset recomputes scores for three recorded deterministic orders. Its
 other baseline scores are retained under `referenceMetrics`, explicitly outside
 the recomputed results: their full permutations are not present in that
 authoritative artifact directory. All eight original external-Java policies
@@ -68,8 +68,10 @@ affectedness adapter and all four ordering permutations against the original
 python3 research/tests/audit_original.py --evidence-root /path/to/outputs
 ```
 
-The importer is read-only and checks historical APFDf values against the common
-scorer. Reproducing this analysis is distinct from rerunning native experiments;
+The importer is read-only, independently rechecks available Java/JavaScript
+native method membership and outcome vectors, and checks historical APFDf values
+against the common scorer. `validate` also verifies the eight production source
+hashes in `core-map.json`. Reproducing analysis is distinct from rerunning native experiments;
 the latter additionally requires the pinned runtimes, project versions and
 project-specific build configuration described in the adapter guide.
 
