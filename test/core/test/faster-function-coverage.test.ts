@@ -121,3 +121,11 @@ test('uses isolated per-file coverage and keeps unsupported non-isolated runs co
   const second = await runVitest({ ...config, root: first.root })
   expect(second.ctx!.state.getFiles().map(file => file.name).sort()).toEqual(['left.test.ts', 'right.test.ts'])
 })
+
+test('keeps tests eligible when isolation is disabled after recording callers', async () => {
+  const first = await runInlineTests(files, options)
+  await first.ctx!.close()
+  first.fs.editFile('src/value.ts', source => source.replace('return 1', 'return 3'))
+  const second = await runVitest({ ...options, root: first.root, isolate: false })
+  expect(second.ctx!.state.getFiles().map(file => file.name).sort()).toEqual(['left.test.ts', 'right.test.ts'])
+})

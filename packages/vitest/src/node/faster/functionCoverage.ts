@@ -176,7 +176,7 @@ export async function isFunctionDependencyAffected(
   path: string,
   previous: FunctionSnapshot | undefined,
 ): Promise<boolean> {
-  if (!previous || project.isBrowserEnabled() || project.config.experimental.viteModuleRunner === false) {
+  if (!previous || !project.config.isolate || project.isBrowserEnabled() || project.config.experimental.viteModuleRunner === false) {
     return true
   }
   try {
