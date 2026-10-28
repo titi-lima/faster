@@ -1,5 +1,5 @@
 {
-  "sourceRevision": "449aa3015419ae7f99ecd515f4a1174e99602a70",
+  "sourceRevision": "e7434be0e417fe14a29f392de251c25418a3e84b",
   "files": {
     "packages/vitest/src/node/sequencers/FasterSequencer.ts": "9adeb90462d149baec63cb26bd17dad0d9624bca242c3afaef5cada13324c80f",
     "packages/vitest/src/node/faster/apfdPriority.ts": "0689bc54e9185e06349a700ffbe753acb598476ccbaffd8c2ba16e47431925ff",
