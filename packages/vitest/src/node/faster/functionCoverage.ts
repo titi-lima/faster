@@ -51,7 +51,7 @@ export function resetFasterFunctionCoverage(vitest: Vitest): void {
 }
 
 export function recordFasterFunctionCoverage(project: TestProject, meta: AfterSuiteRunMeta): void {
-  if (project.config.faster.granularity !== 'function' || !project.config.faster.enabled || project.isBrowserEnabled()) {
+  if (!project.config.faster.enabled || project.isBrowserEnabled()) {
     return
   }
   const raw = meta.coverage as { result?: ScriptCoverage[] } | undefined

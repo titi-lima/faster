@@ -32,8 +32,6 @@ export interface FasterOptions {
    * @default true
    */
   changed?: boolean | string
-  /** Use per-test V8 function coverage to refine affected dependencies. */
-  granularity?: 'file' | 'function'
   /** Run only changed, unknown, affected or previously failing test files. */
   selectAffected?: boolean
   /**
@@ -48,7 +46,6 @@ export interface ResolvedFasterOptions {
   enabled: boolean
   optimizeFor: 'dx' | 'apfd'
   changed: boolean | string
-  granularity: 'file' | 'function'
   selectAffected: boolean
   priorityFile: string
   immediateFailureOutput: boolean
@@ -61,10 +58,6 @@ export function resolveFasterOptions(
 ): ResolvedFasterOptions {
   const normalized = typeof options === 'object' ? options : {}
   const optimizeFor = normalized.optimizeFor ?? 'dx'
-  const granularity = normalized.granularity ?? 'file'
-  if (granularity !== 'file' && granularity !== 'function') {
-    throw new TypeError(`Invalid faster.granularity: expected "file" or "function", received "${granularity}".`)
-  }
   if (normalized.selectAffected && normalized.changed === false) {
     throw new TypeError('faster.selectAffected requires faster.changed to be enabled.')
   }
@@ -83,7 +76,6 @@ export function resolveFasterOptions(
     enabled,
     optimizeFor,
     changed: normalized.changed ?? true,
-    granularity,
     selectAffected: normalized.selectAffected ?? false,
     priorityFile,
     immediateFailureOutput: normalized.immediateFailureOutput ?? true,

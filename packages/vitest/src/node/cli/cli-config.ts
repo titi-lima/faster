@@ -517,10 +517,6 @@ export const cliOptionsConfig: VitestCLIOptions = {
         argument: '<path>',
         normalize: true,
       },
-      granularity: {
-        description: 'Refine affected dependencies with per-test V8 function coverage (file|function; default: file)',
-        argument: '<file|function>',
-      },
       selectAffected: {
         description: 'Run only changed, unknown, affected or previously failing files since their previous runs (default: false)',
       },

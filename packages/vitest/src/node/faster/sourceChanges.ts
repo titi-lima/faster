@@ -60,8 +60,7 @@ export async function getTestSourceChanges(
       : []
     const changedDependencies = (await Promise.all(changedPaths.filter(path => path !== ownPath).map(async (path) => {
       const snapshot = state.functionTests?.[getTestKey(specification)]?.[path]
-      return specification.project.config.faster.granularity !== 'function'
-        || snapshot?.sourceHash !== previous?.[path]
+      return snapshot?.sourceHash !== previous?.[path]
         || await isFunctionDependencyAffected(specification.project, path, snapshot)
     }))).filter(Boolean).length
     changes.set(specification, {
@@ -111,15 +110,10 @@ export async function saveTestRunSourceSnapshots(
     }
     state.tests[getTestKey(specification)] = snapshot
     state.functionTests ??= Object.create(null)
-    if (specification.project.config.faster.granularity === 'function') {
-      const current = await readSnapshot(specification, Object.keys(snapshot))
-      state.functionTests![getTestKey(specification)] = sameSnapshot(snapshot, current)
-        ? await collectFasterFunctionSnapshots(specification.project, specification.moduleId, snapshot)
-        : {}
-    }
-    else {
-      delete state.functionTests![getTestKey(specification)]
-    }
+    const current = await readSnapshot(specification, Object.keys(snapshot))
+    state.functionTests![getTestKey(specification)] = sameSnapshot(snapshot, current)
+      ? await collectFasterFunctionSnapshots(specification.project, specification.moduleId, snapshot)
+      : {}
     updated = true
   }
   if (updated) {

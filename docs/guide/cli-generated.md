@@ -541,13 +541,6 @@ Prioritize tests affected since the previous test run, optionally also since a G
 
 Path to the FAST priority manifest (default: .faster/priorities.json)
 
-### faster.granularity
-
-- **CLI:** `--faster.granularity <file|function>`
-- **Config:** [faster.granularity](/config/faster#faster-granularity)
-
-Refine affected dependencies with per-test V8 function coverage (file|function; default: file)
-
 ### faster.selectAffected
 
 - **CLI:** `--faster.selectAffected`

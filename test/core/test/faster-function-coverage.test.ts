@@ -24,17 +24,16 @@ const files = {
 }
 const options = {
   cache: { dir: 'node_modules/.vite' },
-  faster: { granularity: 'function' as const, selectAffected: true },
+  faster: { selectAffected: true },
   fileParallelism: false,
   maxWorkers: 1,
 }
 
 test('accepts the opt-in CLI controls and rejects invalid tracking options', () => {
-  expect(resolveFasterOptions('/repo', {}).granularity).toBe('file')
-  expect(() => resolveFasterOptions('/repo', { granularity: 'line' as any })).toThrow('Invalid faster.granularity')
+  expect(resolveFasterOptions('/repo', {}).selectAffected).toBe(false)
   expect(() => resolveFasterOptions('/repo', { changed: false, selectAffected: true })).toThrow('requires faster.changed')
-  expect(createCLI().parse(['node', 'vitest', 'run', '--faster.granularity=function', '--faster.selectAffected'], { run: false }).options.faster)
-    .toEqual({ granularity: 'function', selectAffected: true })
+  expect(createCLI().parse(['node', 'vitest', 'run', '--faster.selectAffected'], { run: false }).options.faster)
+    .toEqual({ selectAffected: true })
 })
 
 test('keeps nested callback edits separate even when both files call the enclosing factory', async () => {
@@ -72,6 +71,8 @@ test('selects callers through a shared barrel, retains failures and refreshes on
   const first = await runInlineTests(files, options)
   expect(first.ctx!.state.getFiles().map(file => file.name).sort()).toEqual(['left.test.ts', 'right.test.ts'])
   const path = resolve(first.ctx!.config.cache === false ? '' : first.ctx!.config.cache.dir, 'faster-sources.json')
+  expect(first.ctx!.config.coverage.enabled).toBe(true)
+  expect(first.ctx!.config.coverage.reporter).toEqual([])
   await first.ctx!.close()
   const initial = JSON.parse(await readFile(path, 'utf8'))
   expect(Object.values(initial.functionTests as Record<string, object>).map(value => Object.keys(value).length > 0))
