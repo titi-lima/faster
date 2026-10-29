@@ -15,6 +15,8 @@
     "./packages/*/*.d.cts",
     "./examples/**/*.*",
     "./bench/**",
+    "./research/work/**",
+    "./research/artifacts/**",
     "./test/cli/**",
     "./test/typescript/**",
     "./test/browser/**",
