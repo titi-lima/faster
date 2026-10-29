@@ -84,7 +84,6 @@ export function serializeConfig(project: TestProject): SerializedConfig {
         ?? globalConfig.snapshotOptions.expand,
     },
     sequence: {
-      faster: config.faster.enabled,
       shuffle: globalConfig.sequence.shuffle,
       concurrent: globalConfig.sequence.concurrent,
       seed: globalConfig.sequence.seed,

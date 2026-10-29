@@ -76,6 +76,7 @@ the relevant suite. An unchanged suite can succeed with no selected tests.
 Optional JSON producer scores: `{"schemaVersion":1,"tests":{"path.test.ts":0.9}}`.
 Higher scores take precedence inside a bucket. Identifiers can include
 `::suite::test`; missing manifests are accepted and invalid scores fail fast.
+Within a file, unscored tests and equal scores keep declaration order.
 
 ## faster.immediateFailureOutput
 

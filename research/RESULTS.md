@@ -38,6 +38,7 @@ first verifies 52 recorded orders; it does not execute native tests again.
 On Apple M4 / Node 24, median ordering-kernel time is 1.49 ms with FAST versus
 0.004 ms without it (three warmups, fifteen alternating measurements per case).
 This excludes source IO, coverage and test execution. Both objectives now use
-the same scoring; FAST is removed from test-file scheduling. Within-test-file
-ordering is a separate mechanism.
+the same scoring; FAST is removed from the runtime. Within a test file, explicit
+producer scores take precedence and ties retain declaration order. The historical
+FAST kernel lives only in `research/fast.ts`.
 Details and source fingerprints: `data/fast-ablation.json`.

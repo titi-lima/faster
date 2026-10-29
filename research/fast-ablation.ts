@@ -8,8 +8,8 @@ import { arch, cpus, platform } from 'node:os'
 import { dirname, resolve } from 'node:path'
 import { performance } from 'node:perf_hooks'
 import { gunzipSync } from 'node:zlib'
-import { getSimilarityOrder } from '../packages/runner/src/utils/priority'
 import { getApfdPriorityScores, getFasterPriorityBucket } from '../packages/vitest/src/node/faster/apfdPriority'
+import { getSimilarityOrder } from './fast'
 
 interface Feature extends ApfdFileFeatures {
   id: string
@@ -133,5 +133,5 @@ for (const c of cases) {
   rows.push(measure(c, cold, new Set(cold.map((_, i) => i)), 'full', 'cold'))
 }
 mkdirSync(dirname(resolve(output)), { recursive: true })
-writeFileSync(output, `${JSON.stringify({ node: process.version, platform: platform(), arch: arch(), cpu: cpus()[0]?.model, benchmarkSHA256: createHash('sha256').update(readFileSync(new URL(import.meta.url))).digest('hex'), implementation: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), scope: 'Offline ordering ablation, not new native outcomes. Input decoding, source IO, coverage, dependency maintenance and test execution excluded from timings. JS full-suite and synthetic cold-start outcomes are counterfactual.', fallback: 'Recorded canonical input order; buckets, scores, selection and fault identities unchanged.', sources, rows }, null, 2)}\n`)
+writeFileSync(output, `${JSON.stringify({ node: process.version, platform: platform(), arch: arch(), cpu: cpus()[0]?.model, benchmarkSHA256: createHash('sha256').update(readFileSync(new URL(import.meta.url))).digest('hex'), historicalKernelSHA256: createHash('sha256').update(readFileSync(new URL('./fast.ts', import.meta.url))).digest('hex'), implementation: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), scope: 'Offline ordering ablation, not new native outcomes. Input decoding, source IO, coverage, dependency maintenance and test execution excluded from timings. JS full-suite and synthetic cold-start outcomes are counterfactual.', fallback: 'Recorded canonical input order; buckets, scores, selection and fault identities unchanged.', sources, rows }, null, 2)}\n`)
 process.stdout.write(`${JSON.stringify({ cases: cases.length, rows: rows.length, recordedOrdersVerified: rows.filter(r => r.recordedOrderVerified).length, output })}\n`)

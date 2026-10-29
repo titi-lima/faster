@@ -62,6 +62,7 @@ start timestamp explicitly lack proof of a pre-execution freeze.
 
 Reproduce the FAST ablation with
 `node --import tsx research/fast-ablation.ts /path/to/outputs research/work/fast-ablation.json`.
+The historical kernel is isolated in `fast.ts`; it is not part of the runner.
 This requires installed workspace dependencies and the original evidence.
 
 Large logs, checkouts and coverage belong in ignored `artifacts/`; generated

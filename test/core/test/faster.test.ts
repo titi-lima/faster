@@ -123,7 +123,7 @@ describe('Faster prioritization', () => {
     expect(order).toEqual(['second', 'first'])
   })
 
-  test('uses built-in lazy FAST ordering when no manifest score exists', async () => {
+  test.each(['dx', 'apfd'] as const)('preserves declaration order without scores in %s mode', async (optimizeFor) => {
     const order: string[] = []
 
     await runInlineTests({
@@ -136,14 +136,59 @@ describe('Faster prioritization', () => {
     }, {
       faster: {
         changed: false,
+        optimizeFor,
       },
       reporters: [orderReporter(order)],
     })
 
     expect(order).toEqual([
       'checkout valid card',
-      'database migration rollback',
       'checkout expired card',
+      'database migration rollback',
+    ])
+  })
+
+  test.each(['dx', 'apfd'] as const)('keeps equal and unscored tasks stable with partial scores in %s mode', async (optimizeFor) => {
+    const order: string[] = []
+
+    await runInlineTests({
+      '.faster/priorities.json': JSON.stringify({
+        schemaVersion: 1,
+        tests: {
+          'unit.test.ts::scored suite::nested': 20,
+          'unit.test.ts::scored first': 10,
+          'unit.test.ts::scored second': 10,
+        },
+      }),
+      'unit.test.ts': `
+        import { describe, test } from 'vitest'
+        test('checkout valid card', () => {})
+        test('checkout expired card', () => {})
+        describe('unscored suite', () => {
+          test('database migration rollback', () => {})
+        })
+        test('scored first', () => {})
+        describe('scored suite', () => {
+          test('unscored nested first', () => {})
+          test('nested', () => {})
+          test('unscored nested second', () => {})
+        })
+        test('scored second', () => {})
+      `,
+    }, {
+      faster: { changed: false, optimizeFor },
+      reporters: [orderReporter(order)],
+    })
+
+    expect(order).toEqual([
+      'nested',
+      'unscored nested first',
+      'unscored nested second',
+      'scored first',
+      'scored second',
+      'checkout valid card',
+      'checkout expired card',
+      'database migration rollback',
     ])
   })
 
