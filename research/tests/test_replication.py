@@ -7,10 +7,19 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from replicate import load_plan, mutate
+from replicate import export_case, load_plan, mutate
 
 
 class ReplicationTests(unittest.TestCase):
+    def test_native_exports_identify_the_reexecuted_implementation(self):
+        recorded = {'project': 'p', 'case': 'c', 'implementationCommit': 'original', 'provenance': {'result': 'original/c.json'}}
+        audit = {'subset': {'faultDetected': False}, 'timing': {'freezeBeforeStartVerified': True}, 'features': 'fresh coverage'}
+        result = export_case(recorded, recorded, audit, 'replication')
+        self.assertEqual(result['implementationCommit'], 'replication')
+        self.assertEqual(result['provenance']['nativeAudit'], audit['subset'])
+        self.assertEqual(result['provenance']['recorded'], recorded['provenance'])
+        self.assertEqual(recorded['implementationCommit'], 'original')
+
     def test_plan_covers_the_exact_recorded_cohorts(self):
         plan, cases = load_plan()
         self.assertEqual(len(cases), 35)

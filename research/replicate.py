@@ -50,6 +50,14 @@ def input_hashes(work):
     return {str(p.relative_to(work)): sha(p) for p in sorted(files)}
 
 
+def export_case(result, recorded, audit, commit):
+    return {**result, 'implementationCommit': commit, 'provenance': {
+        'result': f"cases/{result['project']}/{result['case']}/case.json",
+        'recorded': recorded.get('provenance'), 'nativeAudit': audit['subset'],
+        'timingAudit': audit['timing'], 'features': audit['features'],
+    }}
+
+
 def load_plan():
     data = ROOT / 'data'
     plan = read(data / 'replication.json')
@@ -309,6 +317,7 @@ def main():
         case = cases[spec['project'], spec['case']]
         try:
             result, audit = getattr(runner, spec['cohort'])(case, spec, output)
+            result = export_case(result, case, audit, run_info['implementationCommit'])
             write(output / 'case.json', result)
             write(output / 'audit.json', audit)
             write(output / 'metrics.json', {'recorded': case_metrics(case), 'reproduced': case_metrics(result)})
