@@ -14,6 +14,8 @@ pnpm build
 python3 research/replicate.py --java-home /path/to/jdk8 --maven /path/to/mvn
 ```
 
+On macOS, prefix the last command with `caffeinate -is` to keep the machine awake.
+
 The last command fetches the pinned repositories, recreates each fault, collects
 coverage at its recorded history revisions, runs passing controls and full/selected
 faulty suites, checks method-level outcomes, then calculates metrics and paired
@@ -31,12 +33,16 @@ python3 research/replicate.py --project pinia --out research/work/pinia
 # Add --case COMMIT_OR_MUTATION_PREFIX to run one case.
 ```
 
-Java rebuilds method coverage and replays recorded dependency observations,
+Java rebuilds method coverage and replays recorded dependency/history observations,
 prior durations and comparator permutations. Maven validates full and selected
 outcomes; Java ranks remain offline permutations, not observed execution times.
+Change features use the fixed snapshot; faulty executions use parent production
+and the fixed test tree.
 JavaScript rebuilds function coverage, retains recorded prior durations, and
-records serial FASTER and Vitest-base execution orders. FAST-pw/Fastazi baseline
-orders remain data; their implementations are not included.
+records serial FASTER and Vitest-base execution orders for the Pinia core and
+Zod v4 classic suites in `adapters/vitest.config.ts`. FAST-pw/Fastazi baseline
+orders remain data; their implementations are not included. Historical build
+adjustments are confined to the released Jackson parent and Commons IO JVM locale.
 
 ## Analyze the saved results
 
