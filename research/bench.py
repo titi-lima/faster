@@ -57,6 +57,9 @@ def main():
         require(len(cases) == manifest['caseCount'], 'Dataset case count mismatch')
         require(hashlib.sha256((args.data.parent / 'attempts.json').read_bytes()).hexdigest()
                 == manifest['attemptsSHA256'], 'Attempt ledger hash mismatch')
+        if 'replicationSHA256' in manifest:
+            require(hashlib.sha256((args.data.parent / 'replication.json').read_bytes()).hexdigest()
+                    == manifest['replicationSHA256'], 'Replication plan hash mismatch')
         from collections import Counter
         counts = dict(Counter(c['cohort'] for c in cases))
         require(counts == manifest['cohortCounts'], 'Dataset cohort counts mismatch')

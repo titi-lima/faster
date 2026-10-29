@@ -1,5 +1,10 @@
 # Native adapters
 
+For the complete checkout-and-execution workflow, use
+`python3 research/replicate.py` from the repository root; see the
+[replication instructions](../README.md#run-the-replication). Commands below are
+individual tools, not the full benchmark.
+
 ## Vitest
 
 Use the project's existing configuration and add:
@@ -31,8 +36,8 @@ Maven/Surefire executes Java. `ScopeAgent.java` records per-class coverage;
 `Analyze.java` extracts method fingerprints and coverage. `refine.py` maps changed
 methods to affected tests; `order.ts` ranks them using production buckets and scores.
 The recorder currently recognizes the evaluated Commons, JavaPoet and Jackson
-namespaces. Native project setup and model collection still require the original
-study artifacts. XML reports alone do not establish execution order.
+namespaces. `java/replay.py` collects models and coverage from pinned revisions. The
+replication plan supplies the recorded dependency observations and prior revisions. XML reports alone do not establish execution order.
 
 ```bash
 python3 research/adapters/java/build.py --m2 /path/to/m2 --java-home /path/to/jdk8

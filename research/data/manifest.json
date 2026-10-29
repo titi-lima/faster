@@ -323,5 +323,6 @@
     "faster-java-method-selection-20261021/results/Phase1/javapoet/5dafdcb4/features.json": "92653c3960a1fe72eed67c80c648eca76d42584f9836705de4ea06f14229c4be",
     "faster-java-method-selection-20261021/results/Phase1/javapoet/5dafdcb4/frozen-orders.json": "6603891c1b1dfe28a7f52328092c721b617db74282b0c2eb73e470fe04357648",
     "faster-java-method-selection-20261021/results/Phase1/javapoet/5dafdcb4/native-method/records.json": "2c57f1a732e8ea4fc13ffc29956a58818a53e939294b876b27690de7e9cf1bd6"
-  }
+  },
+  "replicationSHA256": "9437d76cb9ebd13a7e40ad2bc7c940990169cc948921ba99638342b77367c971"
 }

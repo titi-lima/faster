@@ -1,0 +1,405 @@
+{
+  "schemaVersion": 1,
+  "datasetSHA256": "a744317b8fded73a66ee5677df2c681b70648d815688710cc3a86842e44728da",
+  "subjects": {
+    "commons-csv": {
+      "repository": "https://github.com/apache/commons-csv.git"
+    },
+    "javapoet": {
+      "repository": "https://github.com/square/javapoet.git"
+    },
+    "jackson-core": {
+      "repository": "https://github.com/FasterXML/jackson-core.git"
+    },
+    "commons-text": {
+      "repository": "https://github.com/apache/commons-text.git"
+    },
+    "commons-io": {
+      "repository": "https://github.com/apache/commons-io.git"
+    },
+    "pinia": {
+      "repository": "https://github.com/vuejs/pinia"
+    },
+    "zod": {
+      "repository": "https://github.com/colinhacks/zod"
+    }
+  },
+  "cases": [
+    {
+      "project": "commons-csv",
+      "case": "8b3de71fd99d0fa07cb6a3a35b583bbb170aab66",
+      "cohort": "java",
+      "revision": "8b3de71fd99d0fa07cb6a3a35b583bbb170aab66",
+      "parent": "e76c4d809cf2b39a9d7fe831b63e60891fe47f55"
+    },
+    {
+      "project": "commons-csv",
+      "case": "480b90febb39d7a3dd6f55d6082434ef09eb0b5f",
+      "cohort": "java",
+      "revision": "480b90febb39d7a3dd6f55d6082434ef09eb0b5f",
+      "parent": "e24dc316d471c7ad29384a976f8f2ba10375150a"
+    },
+    {
+      "project": "javapoet",
+      "case": "5dafdcb421fafc36a9db53c3106d7f183e23ea58",
+      "cohort": "java",
+      "revision": "5dafdcb421fafc36a9db53c3106d7f183e23ea58",
+      "parent": "b68e867d44e3a24e2d954fec83ce8a5170a4a03b"
+    },
+    {
+      "project": "javapoet",
+      "case": "558401605880b7d636c4e41e3044c775d987a208",
+      "cohort": "java",
+      "revision": "558401605880b7d636c4e41e3044c775d987a208",
+      "parent": "3ddde8f3ccb5182ce5da7fcca21997efe96028a0"
+    },
+    {
+      "project": "javapoet",
+      "case": "3829f2ca6f03a4b941fea41a1e2f4eead8f37bc1",
+      "cohort": "java",
+      "revision": "3829f2ca6f03a4b941fea41a1e2f4eead8f37bc1",
+      "parent": "0f93da9a3d9a1da8d29fc993409fcf83d40452bc"
+    },
+    {
+      "project": "jackson-core",
+      "case": "fc73bee380444112e9294545d4f0b66094884dab",
+      "cohort": "java",
+      "revision": "fc73bee380444112e9294545d4f0b66094884dab",
+      "parent": "ce70782781693c8f3410c1ea9f0c6a9f66750523"
+    },
+    {
+      "project": "jackson-core",
+      "case": "0a765c96f2b2bae77503069c2bb8d82dea948d73",
+      "cohort": "java",
+      "revision": "0a765c96f2b2bae77503069c2bb8d82dea948d73",
+      "parent": "d7d2c7a0f8833fa4c5a32da5b0304d230ec76ef8"
+    },
+    {
+      "project": "commons-csv",
+      "case": "3b10c8f8ac64b75c573e0352dbb3d7ff9279d121",
+      "cohort": "java",
+      "revision": "3b10c8f8ac64b75c573e0352dbb3d7ff9279d121",
+      "parent": "1d5dfcb8f65e25e0bc5c38628138435c3c756b98"
+    },
+    {
+      "project": "javapoet",
+      "case": "b66d3d543982755f1d2397066ac9ccbc5ba8c327",
+      "cohort": "java",
+      "revision": "b66d3d543982755f1d2397066ac9ccbc5ba8c327",
+      "parent": "ff50d7b60ad15fed7ed294ca2295cb356cbc4273"
+    },
+    {
+      "project": "javapoet",
+      "case": "4cd975b9649ec87f9a71ce48916fba8d9d460e4e",
+      "cohort": "java",
+      "revision": "4cd975b9649ec87f9a71ce48916fba8d9d460e4e",
+      "parent": "40dfa0cf36d844ca733bef0d4a61e87c9339af2c"
+    },
+    {
+      "project": "javapoet",
+      "case": "08c7148ab302a364517f993c0fda33b1dca7bfe6",
+      "cohort": "java",
+      "revision": "08c7148ab302a364517f993c0fda33b1dca7bfe6",
+      "parent": "5f3b345be9bd8364268d6460424ae8cf59d087f0"
+    },
+    {
+      "project": "jackson-core",
+      "case": "c4dd84e4d505baa90d8d1675c1f60f8d6ce90db8",
+      "cohort": "java",
+      "revision": "c4dd84e4d505baa90d8d1675c1f60f8d6ce90db8",
+      "parent": "35f3ab4d0512edc2d1ce13a7f43cd75b3c63c797"
+    },
+    {
+      "project": "jackson-core",
+      "case": "d83ce8aec99f4e99afdf8fd172d77ce771f8ea35",
+      "cohort": "java",
+      "revision": "d83ce8aec99f4e99afdf8fd172d77ce771f8ea35",
+      "parent": "eb477b85f74a2a1250ba6294cf4086d496830e27"
+    },
+    {
+      "project": "jackson-core",
+      "case": "80ca2ef213713f85284fa3c7b8513bf7c69e8c08",
+      "cohort": "java",
+      "revision": "80ca2ef213713f85284fa3c7b8513bf7c69e8c08",
+      "parent": "b1391d36ec9d8a9272e4358888f8ce60e2d5f8d7"
+    },
+    {
+      "project": "commons-text",
+      "case": "d3051739d9fc77890218a8dbebdc9560d12532a7",
+      "cohort": "java",
+      "revision": "d3051739d9fc77890218a8dbebdc9560d12532a7",
+      "parent": "dba22a2f5b03d595c0d9ce681a1c3b2018a75f1d"
+    },
+    {
+      "project": "commons-text",
+      "case": "c9f92a02f8c0ddfc8e8f30fadf2ac932072ae284",
+      "cohort": "java",
+      "revision": "c9f92a02f8c0ddfc8e8f30fadf2ac932072ae284",
+      "parent": "804e4599bd63e4bb14c905613711eac8829e54fb"
+    },
+    {
+      "project": "commons-io",
+      "case": "afe78a030b57e3f74825e134d6615ef4878778cc",
+      "cohort": "java",
+      "revision": "afe78a030b57e3f74825e134d6615ef4878778cc",
+      "parent": "35ea189f533c703906d9f770dff684c4557b18a7"
+    },
+    {
+      "project": "pinia",
+      "case": "mutation-5bdf26c702-54d6662446",
+      "cohort": "javascript",
+      "revision": "5bdf26c702999921a08ce8361f865fdc78c6dfb7",
+      "mutation": {
+        "path": "packages/pinia/src/mapHelpers.ts",
+        "sourceSHA256": "88c94e40edfc31750824bcc697cb248fee9cfeeec933ed2691a0e50dec154c62",
+        "mutatedSHA256": "0b0f88f4567601f761ce7fdbdef71bd58f81c8cb25e1e0a4f49eb023dc6107f7",
+        "offset": 7541,
+        "before": "=",
+        "after": "!"
+      }
+    },
+    {
+      "project": "pinia",
+      "case": "mutation-5bdf26c702-8b32971db5",
+      "cohort": "javascript",
+      "revision": "5bdf26c702999921a08ce8361f865fdc78c6dfb7",
+      "mutation": {
+        "path": "packages/pinia/src/storeToRefs.ts",
+        "sourceSHA256": "98080db6f3174208a776e2fa58cb1dc9039eec578c995c08cb1f3b5f18a926a0",
+        "mutatedSHA256": "9c015be975db28e3f913f9122d2ec3b11d1cc6f69c47c20081296a985c9891cf",
+        "offset": 2916,
+        "before": "isRef(value) || isReactive(value",
+        "after": "!(isRef(value) || isReactive(value)"
+      }
+    },
+    {
+      "project": "pinia",
+      "case": "mutation-5bdf26c702-a7b369c113",
+      "cohort": "javascript",
+      "revision": "5bdf26c702999921a08ce8361f865fdc78c6dfb7",
+      "mutation": {
+        "path": "packages/pinia/src/rootStore.ts",
+        "sourceSHA256": "463a83a494f6206f90fff918427031546f8803d977fe135cb90be9528f3cda02",
+        "mutatedSHA256": "4817f1539a9d62a7c0e37cfcf456fcca12634ef4710930fc6106fb0ed8ee1d71",
+        "offset": 1172,
+        "before": "pinia && !IS_CLIENT",
+        "after": "(!pinia && !IS_CLIENT)"
+      }
+    },
+    {
+      "project": "pinia",
+      "case": "mutation-5bdf26c702-b641113201",
+      "cohort": "javascript",
+      "revision": "5bdf26c702999921a08ce8361f865fdc78c6dfb7",
+      "mutation": {
+        "path": "packages/pinia/src/subscriptions.ts",
+        "sourceSHA256": "39d0ebbab525b6f40d7a4e6c92e6b24341464852e90f36ceefa85d24be73f532",
+        "mutatedSHA256": "a4e8f89595806ee4918ce4cd80486d1fac508cde735864a9420c827a86cd66af",
+        "offset": 422,
+        "before": "detached && getCurrentScope(",
+        "after": "(!detached && getCurrentScope()"
+      }
+    },
+    {
+      "project": "pinia",
+      "case": "mutation-70eacb6749-01c0170397",
+      "cohort": "javascript",
+      "revision": "70eacb6749c81ce2b220ccceaf9b756c981016a7",
+      "mutation": {
+        "path": "packages/pinia/src/store.ts",
+        "sourceSHA256": "cc23ce0001a5603f608114454152ad1cc22811f0d87d52eb61fe2e7449f91776",
+        "mutatedSHA256": "9f9b128aa9d4960daf317a1220a52fe72b02d10d78f67effab222501e5c1f064",
+        "offset": 26837,
+        "before": "__DEV__ && !activePinia",
+        "after": "!(__DEV__ && !activePinia)"
+      }
+    },
+    {
+      "project": "pinia",
+      "case": "mutation-70eacb6749-09993d8205",
+      "cohort": "javascript",
+      "revision": "70eacb6749c81ce2b220ccceaf9b756c981016a7",
+      "mutation": {
+        "path": "packages/pinia/src/storeToRefs.ts",
+        "sourceSHA256": "98080db6f3174208a776e2fa58cb1dc9039eec578c995c08cb1f3b5f18a926a0",
+        "mutatedSHA256": "54c81e167d7c492ad2c9f282535000f104cf326a7e780038b60e2a713ad21c18",
+        "offset": 2667,
+        "before": "value?.effect",
+        "after": "!(value?.effect)"
+      }
+    },
+    {
+      "project": "pinia",
+      "case": "mutation-70eacb6749-15b4c1bdc2",
+      "cohort": "javascript",
+      "revision": "70eacb6749c81ce2b220ccceaf9b756c981016a7",
+      "mutation": {
+        "path": "packages/pinia/src/rootStore.ts",
+        "sourceSHA256": "50edeb2488be855f823f76576b5d01721c6034e78fac65705fc183a1ed35adfb",
+        "mutatedSHA256": "1d02d98d75169f2425f135a70ad757ef73397e8fb5b220398db34df92023ff5a",
+        "offset": 1172,
+        "before": "pinia && !IS_CLIENT",
+        "after": "(!pinia && !IS_CLIENT)"
+      }
+    },
+    {
+      "project": "pinia",
+      "case": "mutation-70eacb6749-55b635b242",
+      "cohort": "javascript",
+      "revision": "70eacb6749c81ce2b220ccceaf9b756c981016a7",
+      "mutation": {
+        "path": "packages/pinia/src/createPinia.ts",
+        "sourceSHA256": "c95d94d9f72500a548d3b125fbe66128d3ba55f124d97c0b3e3569eb410cc4b3",
+        "mutatedSHA256": "e3ff80ff182493808575c7efd026489d0957d04373c51c99fcc3b122b19a5f38",
+        "offset": 1331,
+        "before": "this._a",
+        "after": "(!this._a)"
+      }
+    },
+    {
+      "project": "pinia",
+      "case": "mutation-70eacb6749-7bcef5ba0a",
+      "cohort": "javascript",
+      "revision": "70eacb6749c81ce2b220ccceaf9b756c981016a7",
+      "mutation": {
+        "path": "packages/pinia/src/subscriptions.ts",
+        "sourceSHA256": "39d0ebbab525b6f40d7a4e6c92e6b24341464852e90f36ceefa85d24be73f532",
+        "mutatedSHA256": "a4e8f89595806ee4918ce4cd80486d1fac508cde735864a9420c827a86cd66af",
+        "offset": 422,
+        "before": "detached && getCurrentScope(",
+        "after": "(!detached && getCurrentScope()"
+      }
+    },
+    {
+      "project": "pinia",
+      "case": "mutation-f48737e9aa-0000ad6433",
+      "cohort": "javascript",
+      "revision": "f48737e9aaffcb63c70c0f4f2c977e91be657fcb",
+      "mutation": {
+        "path": "packages/pinia/src/store.ts",
+        "sourceSHA256": "8c6385ea12fd98047825077b61203023be00e2fedbfa878a860148d319898c86",
+        "mutatedSHA256": "c6e253ef32f8eda631eb54e9e782bddeeeb50a8c5b9fe8e6eb2b368c8e1b6491",
+        "offset": 20220,
+        "before": "Object.hasOwn(oldStateSource, key) &&\n                    !oldStateKeys.includes(key",
+        "after": "!(Object.hasOwn(oldStateSource, key) &&\n                    !oldStateKeys.includes(key)"
+      }
+    },
+    {
+      "project": "pinia",
+      "case": "mutation-f48737e9aa-025f523ecf",
+      "cohort": "javascript",
+      "revision": "f48737e9aaffcb63c70c0f4f2c977e91be657fcb",
+      "mutation": {
+        "path": "packages/pinia/src/storeToRefs.ts",
+        "sourceSHA256": "98080db6f3174208a776e2fa58cb1dc9039eec578c995c08cb1f3b5f18a926a0",
+        "mutatedSHA256": "54c81e167d7c492ad2c9f282535000f104cf326a7e780038b60e2a713ad21c18",
+        "offset": 2667,
+        "before": "value?.effect",
+        "after": "!(value?.effect)"
+      }
+    },
+    {
+      "project": "pinia",
+      "case": "mutation-f48737e9aa-0e9e86ae48",
+      "cohort": "javascript",
+      "revision": "f48737e9aaffcb63c70c0f4f2c977e91be657fcb",
+      "mutation": {
+        "path": "packages/pinia/src/createPinia.ts",
+        "sourceSHA256": "c95d94d9f72500a548d3b125fbe66128d3ba55f124d97c0b3e3569eb410cc4b3",
+        "mutatedSHA256": "e3ff80ff182493808575c7efd026489d0957d04373c51c99fcc3b122b19a5f38",
+        "offset": 1331,
+        "before": "this._a",
+        "after": "(!this._a)"
+      }
+    },
+    {
+      "project": "pinia",
+      "case": "mutation-f48737e9aa-189922109b",
+      "cohort": "javascript",
+      "revision": "f48737e9aaffcb63c70c0f4f2c977e91be657fcb",
+      "mutation": {
+        "path": "packages/pinia/src/env.ts",
+        "sourceSHA256": "03e2721847f3435ae33d3438c4dd22fa4dee967b0d116f8adb389171a0030608",
+        "mutatedSHA256": "a8c5cb1fbee5545f9dd590ff4584e711bcf77e070c1a55b84f5cceae1ae28315",
+        "offset": 39,
+        "before": "!",
+        "after": "="
+      }
+    },
+    {
+      "project": "zod",
+      "case": "mutation-10dda3a3a4-02398cced8",
+      "cohort": "javascript",
+      "revision": "10dda3a3a4bc76ed0bf83e994de194587e489ef8",
+      "mutation": {
+        "path": "packages/zod/src/v4/classic/schemas.ts",
+        "sourceSHA256": "95b134b255f29fe5ac4dda3f64f85eaabd73a6476910abb175e59de1440fc16e",
+        "mutatedSHA256": "a55497590c495a4fc8f8d6c2654c2ad1552c1d1347254070ec6ecc6181f159b7",
+        "offset": 70027,
+        "before": "valueType || !(valueType as any)._zod",
+        "after": "(!valueType || !(valueType as any)._zod)"
+      }
+    },
+    {
+      "project": "zod",
+      "case": "mutation-10dda3a3a4-070f6c515b",
+      "cohort": "javascript",
+      "revision": "10dda3a3a4bc76ed0bf83e994de194587e489ef8",
+      "mutation": {
+        "path": "packages/zod/src/v4/core/memoizer.ts",
+        "sourceSHA256": "8415a081f35e1bf160ed3fe39733e6a886afe90a6a9b32c48395d33e623facf7",
+        "mutatedSHA256": "ce60e487c3f694c1a04a5094ea4661036f705a85aecb2d1282b3cd2405762001",
+        "offset": 3503,
+        "before": "tru",
+        "after": "fals"
+      }
+    },
+    {
+      "project": "zod",
+      "case": "mutation-10dda3a3a4-1efcda9d71",
+      "cohort": "javascript",
+      "revision": "10dda3a3a4bc76ed0bf83e994de194587e489ef8",
+      "mutation": {
+        "path": "packages/zod/src/v4/core/regexes.ts",
+        "sourceSHA256": "fd08a3d605812f51ac57e5c5b327682f99aaf741cff30a9363cb4f6afc60cdc9",
+        "mutatedSHA256": "74753eb82ef06a54a07fa6957c4da97414b4c43787fc9185dfa684e162b1b01f",
+        "offset": 8728,
+        "before": "=",
+        "after": "!"
+      }
+    },
+    {
+      "project": "zod",
+      "case": "mutation-284243fb0d-218e1ceea0",
+      "cohort": "javascript",
+      "revision": "284243fb0d6532665afdc9239188773bb624f73c",
+      "mutation": {
+        "path": "packages/zod/src/v4/classic/in-out.ts",
+        "sourceSHA256": "2f483a2fc77ea92e1e049eae34e8415e563ffbdf662b7c97d0d31b4d0a4739f1",
+        "mutatedSHA256": "81164222e6cb445524a77c0a216916a4648dcb2eb21e92f487a6a70694495b0d",
+        "offset": 553,
+        "before": "checks?.length",
+        "after": "(!checks?.length)"
+      }
+    },
+    {
+      "project": "zod",
+      "case": "mutation-cc4cd4ee9c-1e1f375ee5",
+      "cohort": "javascript",
+      "revision": "cc4cd4ee9c52fcaa10964e48cc144541e41a5ed9",
+      "mutation": {
+        "path": "packages/zod/src/v4/core/regexes.ts",
+        "sourceSHA256": "fd08a3d605812f51ac57e5c5b327682f99aaf741cff30a9363cb4f6afc60cdc9",
+        "mutatedSHA256": "77a2380c9fdb7d0d1baaf8305ff53a5a68acb0bc155f3972621f2dfb65a7b872",
+        "offset": 9695,
+        "before": "tru",
+        "after": "fals"
+      }
+    }
+  ],
+  "runtimeSHA256": {
+    "package.json": "f2625383327af5eb4068451b5f027042b8c7209b2f351f0ca2dd41eac69b1c7c",
+    "pnpm-lock.yaml": "d2b1597f795afc4f057619dfd28c3c57ba051439eaa3dc70f6f3a77d5990f93f"
+  },
+  "inputsSHA256": "8361fb7880051a885bbdb1619fd92f6cc3e4ae83f894764fd0486ea602d7c933"
+}
