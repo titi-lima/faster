@@ -126,7 +126,7 @@ test('honors per-project opt-outs for ordering and source history', async () => 
   expect(Object.keys(JSON.parse(await readFile(path, 'utf8')).tests)).toEqual([expect.stringMatching(/^active:/)])
 })
 
-test('retains optional Git revision comparisons without snapshot history', async () => {
+test.each(['dx', 'apfd'] as const)('%s establishes unknown observations and retains Git revision comparisons', async (optimizeFor) => {
   const order: string[] = []
   const config = {
     ...options,
@@ -153,6 +153,10 @@ test('retains optional Git revision comparisons without snapshot history', async
   first.fs.editFile('src/value.ts', source => `${source}\n// changed\n`)
   await commit()
   order.length = 0
-  await runVitest({ ...config, root: first.root, faster: { changed: revision } })
+  const second = await runVitest({ ...config, root: first.root, faster: { changed: revision, optimizeFor } })
+  expect(order).toEqual(['a', 'b'])
+  await second.ctx!.close()
+  order.length = 0
+  await runVitest({ ...config, root: first.root, faster: { changed: revision, optimizeFor } })
   expect(order).toEqual(['b', 'a'])
 })

@@ -902,7 +902,6 @@ export async function runSuite(suite: Suite, runner: VitestRunner): Promise<void
                 tasksGroup,
                 runner.config.root,
                 runner.config.sequence.priorities,
-                runner.config.sequence.faster,
               )
               if (tasksGroup[0].concurrent === true) {
                 const groupLimiter = limitConcurrency(runner.config.maxConcurrency)

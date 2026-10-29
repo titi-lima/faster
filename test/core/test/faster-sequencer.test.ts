@@ -1,4 +1,4 @@
-import type { Reporter, TestCase } from 'vitest/node'
+import type { Reporter, TestCase, Vitest } from 'vitest/node'
 import { expect, test } from 'vitest'
 import { runInlineTests, runVitest } from '../../test-utils'
 
@@ -46,36 +46,60 @@ function config(order: string[], changed: boolean) {
   }
 }
 
-test('keeps global FAST order after a slower file gains result history', async () => {
+async function seedDurations(ctx: Vitest, durations: Record<string, number>) {
+  for (const [file, duration] of Object.entries(durations)) {
+    ctx.cache.getFileTestResults(`${ctx.projects[0].name}:${file}`)!.duration = duration
+  }
+  await ctx.cache.results.writeToCache()
+}
+
+test.each(['dx', 'apfd'] as const)('uses the same duration/size ranking on cold and warm %s runs', async (optimizeFor) => {
   const order: string[] = []
-  const options = config(order, false)
+  const options = { ...config(order, false), faster: { changed: false, optimizeFor } }
   const first = await runInlineTests(files, options)
-  expect(order).toEqual(['first file', 'dissimilar file', 'similar file'])
-  const name = first.ctx!.projects[0].name
-  const results = first.ctx!.cache
-  expect(results.getFileTestResults(`${name}:b.test.ts`)!.duration)
-    .toBeGreaterThan(results.getFileTestResults(`${name}:a.test.ts`)!.duration)
+  expect(order).toEqual(['similar file', 'dissimilar file', 'first file'])
+  await seedDurations(first.ctx!, { 'a.test.ts': 100, 'b.test.ts': 10, 'c.test.ts': 50 })
   await first.ctx!.close()
   order.length = 0
   await runVitest({ ...options, root: first.root })
   expect(order).toEqual(['first file', 'dissimilar file', 'similar file'])
 })
 
-test('partitions the global FAST order into affected buckets, including after reverts', async () => {
+test('keeps affected tests ahead of the remaining suite after edits and reverts', async () => {
   const order: string[] = []
   const options = config(order, true)
   const first = await runInlineTests(files, options)
-  expect(order).toEqual(['first file', 'dissimilar file', 'similar file'])
+  expect(order).toEqual(['similar file', 'dissimilar file', 'first file'])
+  await seedDurations(first.ctx!, { 'a.test.ts': 10, 'b.test.ts': 100, 'c.test.ts': 50 })
   await first.ctx!.close()
   first.fs.editFile('src/shared.ts', source => `${source}\n// shared dependency changed\n`)
   order.length = 0
   const second = await runVitest({ ...options, root: first.root })
-  expect(order).toEqual(['dissimilar file', 'similar file', 'first file'])
+  expect(order).toEqual(['similar file', 'dissimilar file', 'first file'])
+  await seedDurations(second.ctx!, { 'a.test.ts': 10, 'b.test.ts': 100, 'c.test.ts': 50 })
   await second.ctx!.close()
   first.fs.editFile('src/shared.ts', () => files['src/shared.ts'])
   order.length = 0
   await runVitest({ ...options, root: first.root })
-  expect(order).toEqual(['dissimilar file', 'similar file', 'first file'])
+  expect(order).toEqual(['similar file', 'dissimilar file', 'first file'])
+})
+
+test.each(['dx', 'apfd'] as const)('uses path order for equal %s priorities', async (optimizeFor) => {
+  const order: string[] = []
+  const bodies = {
+    'a.test.ts': `import { test } from 'vitest'; test('checkout valid card', () => {})`,
+    'b.test.ts': `import { test } from 'vitest'; test('checkout expired card', () => {})`,
+    'c.test.ts': `import { test } from 'vitest'; test('database migration rollback', () => {})`,
+  }
+  const equalSize = Object.fromEntries(Object.entries(bodies).map(([name, body]) => [name, body.padEnd(200)]))
+  const options = { ...config(order, false), faster: { changed: false, optimizeFor } }
+  const first = await runInlineTests(equalSize, options)
+  expect(order).toEqual(['checkout valid card', 'checkout expired card', 'database migration rollback'])
+  await seedDurations(first.ctx!, { 'a.test.ts': 10, 'b.test.ts': 10, 'c.test.ts': 10 })
+  await first.ctx!.close()
+  order.length = 0
+  await runVitest({ ...options, root: first.root })
+  expect(order).toEqual(['checkout valid card', 'checkout expired card', 'database migration rollback'])
 })
 
 test.each(['dx', 'apfd'] as const)('honors producer scores on warm %s runs', async (optimizeFor) => {

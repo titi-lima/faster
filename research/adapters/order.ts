@@ -1,11 +1,9 @@
 /** Single-project research adapter. Native Vitest uses FasterSequencer directly. */
 import { readFile, writeFile } from 'node:fs/promises'
-import { getSimilarityOrder } from '../../packages/runner/src/utils/priority'
-import { getApfdPriorityScores } from '../../packages/vitest/src/node/faster/apfdPriority'
+import { getApfdPriorityScores, getFasterPriorityBucket } from '../../packages/vitest/src/node/faster/apfdPriority'
 
 interface Features {
   id: string
-  source: string
   bytes: number
   duration?: number
   failed: boolean
@@ -24,7 +22,7 @@ async function main() {
     throw new Error('Expected a nonempty, unique test universe')
   }
   for (const file of files) {
-    if (typeof file.source !== 'string' || !Number.isFinite(file.bytes) || file.bytes < 0
+    if (!Number.isFinite(file.bytes) || file.bytes < 0
       || ['failed', 'known', 'testChanged', 'affected'].some(key => typeof file[key as keyof Features] !== 'boolean')) {
       throw new Error(`Invalid features for ${file.id}`)
     }
@@ -33,16 +31,17 @@ async function main() {
     }
   }
   const indices = files.map((_, i) => i)
-  const fastOrder = getSimilarityOrder(files.map(f => f.source))
   const scores = getApfdPriorityScores(files)
-  const bucket = (i: number) => Number(!files[i].failed) * 3
-    + (!files[i].known || files[i].testChanged ? 0 : files[i].affected ? 1 : 2)
-  const order = [...fastOrder].sort((a, b) => bucket(a) - bucket(b) || scores[b] - scores[a])
+  const bucket = (i: number) => getFasterPriorityBucket({
+    failed: files[i].failed,
+    direct: !files[i].known || files[i].testChanged,
+    affected: files[i].affected,
+  }, 'apfd')
+  const order = [...indices].sort((a, b) => bucket(a) - bucket(b) || scores[b] - scores[a])
   const selected = new Set(indices.filter(i => files[i].failed || !files[i].known || files[i].testChanged || files[i].affected))
   await writeFile(output, `${JSON.stringify({
     order,
     selectedOrder: order.filter(i => selected.has(i)),
-    fastOrder,
     buckets: indices.map(bucket),
     scores,
     frozenUTC: new Date().toISOString(),

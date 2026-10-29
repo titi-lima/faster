@@ -28,7 +28,6 @@ export interface VitestRunnerConfig {
   testNamePattern: RegExp | undefined
   allowOnly: boolean
   sequence: {
-    faster?: boolean
     shuffle?: boolean
     concurrent?: boolean
     seed: number

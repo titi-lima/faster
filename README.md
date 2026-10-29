@@ -17,7 +17,7 @@
 Faster
 </h1>
 <p align="center">
-An API-compatible Vitest fork with built-in FAST test prioritization and immediate failure feedback.
+An API-compatible Vitest fork with function-aware selection, test prioritization and immediate failure feedback.
 <p>
 <p align="center">
   <a href="https://npmx.dev/package/faster"><img src="https://img.shields.io/npm/v/faster?color=729B1B&label=" alt="current Faster version badge"></a>
@@ -45,7 +45,7 @@ For the prioritization strategy, benchmark methodology and reproducible results,
 see the [research workspace](./research/README.md).
 
 - Changed function bodies are matched to recorded test callers and scheduled first.
-- A built-in deterministic FAST-pw-style MinHash order prioritizes both affected tests and the remaining suite.
+- Shared failure/change buckets and history/size scores prioritize test files; DX defers unchanged, unaffected known failures.
 - Optional `.faster/priorities.json` scores override the built-in order when richer producer signals are available.
 - Failures, captured output, diffs, and stacks are printed as soon as each failing test finishes.
 - Vitest's public test, config, plugin, reporter, and CLI APIs remain available for low-friction migration.

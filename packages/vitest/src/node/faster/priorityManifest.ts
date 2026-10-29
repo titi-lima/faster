@@ -17,9 +17,8 @@ export interface FasterPriorityManifest {
 export interface FasterOptions {
   enabled?: boolean
   /**
-   * In APFD mode, prioritize cached failures, edited/new tests, then affected
-   * tests, using prior duration and source breadth before FAST tie-breaking.
-   * This is a heuristic, not a guarantee of optimal APFD.
+   * Both objectives use failure/change buckets and prior duration/source size.
+   * DX defers unchanged, unaffected known failures to the end.
    *
    * @default 'dx'
    */
@@ -36,7 +35,7 @@ export interface FasterOptions {
   selectAffected?: boolean
   /**
    * Optional producer scores within each scheduling bucket. Equal scores and
-   * unscored files use the selected objective, with FAST breaking remaining ties.
+   * unscored files use the shared ranking, with path order breaking ties.
    */
   priorityFile?: string
   immediateFailureOutput?: boolean

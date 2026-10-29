@@ -29,7 +29,7 @@ Normalize the output with `python3 research/native.py vitest INPUT OUTPUT`.
 
 Maven/Surefire executes Java. `ScopeAgent.java` records per-class coverage;
 `Analyze.java` extracts method fingerprints and coverage. `refine.py` maps changed
-methods to affected tests; `order.ts` ranks them using production FAST/scoring.
+methods to affected tests; `order.ts` ranks them using production buckets and scores.
 The recorder currently recognizes the evaluated Commons, JavaPoet and Jackson
 namespaces. Native project setup and model collection still require the original
 study artifacts. XML reports alone do not establish execution order.

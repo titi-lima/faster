@@ -10,7 +10,6 @@ export {
 } from './collect'
 export { limitConcurrency } from './limit-concurrency'
 export {
-  getSimilarityOrder,
   getTaskPriority,
   getTaskPriorityId,
   prioritizeTasks,

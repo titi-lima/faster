@@ -33,7 +33,7 @@ for (const filepath of findRuntimeFiles(distRoot)) {
 }
 
 const runnerUtils = await import('../dist/_runner/utils.js')
-assert.equal(typeof runnerUtils.getSimilarityOrder, 'function')
+assert.equal(typeof runnerUtils.prioritizeTasks, 'function')
 
 for (const entry of [
   'config',

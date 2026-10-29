@@ -525,7 +525,7 @@ Enable Faster prioritization (default: true)
 - **CLI:** `--faster.optimizeFor <dx|apfd>`
 - **Config:** [faster.optimizeFor](/config/faster#faster-optimizefor)
 
-Ordering objective: dx uses affected-first FAST; apfd prioritizes failures and edited/new tests with history/breadth ranking (default: dx)
+Shared failure/change ranking; dx defers unchanged, unaffected known failures (default: dx)
 
 ### faster.changed
 
@@ -539,7 +539,7 @@ Prioritize tests affected since the previous test run, optionally also since a G
 - **CLI:** `--faster.priorityFile <path>`
 - **Config:** [faster.priorityFile](/config/faster#faster-priorityfile)
 
-Path to the FAST priority manifest (default: .faster/priorities.json)
+Path to the producer priority manifest (default: .faster/priorities.json)
 
 ### faster.selectAffected
 

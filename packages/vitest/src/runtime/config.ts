@@ -47,7 +47,6 @@ export interface SerializedConfig {
   }
   printConsoleTrace: boolean | undefined
   sequence: {
-    faster?: boolean
     shuffle?: boolean
     concurrent?: boolean
     seed: number
