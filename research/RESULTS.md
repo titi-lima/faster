@@ -26,19 +26,3 @@ There are no new JavaScript comparator executions in this cleanup.
 Known losses: JavaPoet `3829f2ca` has rank 7 versus FAST-pw mean 2.93; Commons Text
 `d3051739` has rank 12 versus Ekstazi+random mean 7.17. Next: independent natural
 histories with unchanged tests, then end-to-end execution cost.
-
-## FAST ablation
-
-Replacing FAST with canonical input order preserves APFDf, first-failure ranks,
-recall and all twelve detection budgets in all 35 recorded APFD cases. Only one
-selected order changes: four nonrevealing Zod tests exchange positions. Full-suite
-and synthetic cold-start checks also preserve first-failure ranks. The replay
-first verifies 52 recorded orders; it does not execute native tests again.
-
-On Apple M4 / Node 24, median ordering-kernel time is 1.49 ms with FAST versus
-0.004 ms without it (three warmups, fifteen alternating measurements per case).
-This excludes source IO, coverage and test execution. Both objectives now use
-the same scoring; FAST is removed from the runtime. Within a test file, explicit
-producer scores take precedence and ties retain declaration order. The historical
-FAST kernel lives only in `research/fast.ts`.
-Details and source fingerprints: `data/fast-ablation.json`.
