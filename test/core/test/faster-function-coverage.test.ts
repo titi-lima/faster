@@ -55,6 +55,19 @@ test('finishes an unchanged warm run successfully without selecting files', asyn
   expect(second.exitCode).toBe(0)
 })
 
+test('applies CLI selection to every configured project', async () => {
+  const projectFiles = {
+    ...files,
+    'vitest.config.ts': `export default { test: { projects: [{ test: { name: 'unit' } }] } }`,
+  }
+  const cliOptions = { ...options, faster: undefined, $cliOptions: { faster: { selectAffected: true } } }
+  const first = await runInlineTests(projectFiles, cliOptions)
+  expect(first.ctx!.state.getFiles().map(file => file.name).sort()).toEqual(['left.test.ts', 'right.test.ts'])
+  await first.ctx!.close()
+  const second = await runVitest({ ...cliOptions, root: first.root })
+  expect(second.ctx!.state.getFiles()).toEqual([])
+})
+
 test('preserves explicit Vitest force-rerun triggers when selection is enabled', async () => {
   const first = await runInlineTests({ ...files, 'package.json': '{"type":"module"}' }, options)
   await first.ctx!.close()
