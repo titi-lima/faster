@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs'
 // and stock Vitest ran back to back in a seeded random order on the same restored checkout and cache.
 // Usage: node --import tsx research/perf/bench-summary.ts SUBJECT=ROWS.json [SUBJECT=ROWS.json ...]
 
-interface Timing { pair: number; arm: string; processMs: number; windows?: Record<string, number>; load1Before: number }
+interface Timing { pair: number; arm: string; processMs: number; cpuMs?: number; windows?: Record<string, number>; load1Before: number }
 interface Unit { revision: string; pair: number; arms: Record<string, Timing> }
 
 function median(values: number[]) {
@@ -40,6 +40,9 @@ export function summarizeBench(subject: string, rows: { revision: string; bench?
   const arm = (name: string) => units.map(unit => unit.arms[name].processMs)
   const difference = units.map(unit => unit.arms.new.processMs - unit.arms.old.processMs)
   const overhead = (name: string) => units.map(unit => unit.arms[name].processMs / unit.arms.stock.processMs - 1)
+  const cpu = units.every(unit => Object.values(unit.arms).every(timing => timing.cpuMs !== undefined))
+  const cpuDifference = units.map(unit => unit.arms.new.cpuMs! - unit.arms.old.cpuMs!)
+  const cpuOverhead = (name: string) => units.map(unit => unit.arms[name].cpuMs! / unit.arms.stock.cpuMs! - 1)
   const windows = (name: string) => Object.fromEntries(['beforeFirstModuleMs', 'modulesMs', 'afterLastModuleMs'].map(key => [key, median(units.map(unit => unit.arms[name].windows?.[key] ?? Number.NaN))]))
   return {
     subject,
@@ -51,6 +54,16 @@ export function summarizeBench(subject: string, rows: { revision: string; bench?
       old: { median: median(overhead('old')), interval95: bootstrap(overhead('old'), `${subject}:old`) },
       new: { median: median(overhead('new')), interval95: bootstrap(overhead('new'), `${subject}:new`) },
     },
+    cpu: cpu
+      ? {
+          medianMs: Object.fromEntries(['stock', 'old', 'new'].map(name => [name, median(units.map(unit => unit.arms[name].cpuMs!))])),
+          newMinusOldMs: { median: median(cpuDifference), interval95: bootstrap(cpuDifference, `${subject}:cpu-difference`), newLowerInUnits: cpuDifference.filter(value => value < 0).length },
+          overheadVsStock: {
+            old: { median: median(cpuOverhead('old')), interval95: bootstrap(cpuOverhead('old'), `${subject}:cpu-old`) },
+            new: { median: median(cpuOverhead('new')), interval95: bootstrap(cpuOverhead('new'), `${subject}:cpu-new`) },
+          },
+        }
+      : undefined,
     windowsMedianMs: { stock: windows('stock'), old: windows('old'), new: windows('new') },
     load1: { median: median(units.flatMap(unit => Object.values(unit.arms).map(timing => timing.load1Before))), max: Math.max(...units.flatMap(unit => Object.values(unit.arms).map(timing => timing.load1Before))) },
   }
