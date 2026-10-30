@@ -264,17 +264,30 @@ function normalizePath(path: string) {
   return path.replace(/^(?:\.\.\/)+(?:[^/]+\/)*?packages\/([a-z-]+)\/dist\//, '<fork>/$1/dist/')
 }
 // Function models hash Vite's transform of each module. Module-level code embeds the absolute paths of resolved
-// imports (fork, native install), which differ from the recorded study; so does every function of the fork's own
-// dist. Those hashes are masked against the recording; builds staged at one path are compared unmasked.
-function maskLocationDependent(cache: unknown) {
+// imports (fork, native install), which differ from the recorded study; so do functions of the fork's own dist and
+// functions of modules with dynamic imports. Those hashes are masked against the recording (called flags, ids and
+// source hashes stay compared); builds staged at one path are compared unmasked.
+const masked = { shapes: 0, forkFunctionHashes: 0, dynamicImportFunctionHashes: 0 }
+function hasDynamicImport(path: string) {
+  try {
+    return /\bimport\s*\(/.test(readFileSync(join(root, path), 'utf8'))
+  }
+  catch {
+    return false
+  }
+}
+function maskLocationDependent(cache: unknown, count = false) {
   const value = structuredClone(cache) as Record<string, { functionTests?: Record<string, Record<string, { shape: string; functions: Record<string, { hash: string }> }>> }>
   for (const file of Object.values(value)) {
     for (const snapshots of Object.values(file.functionTests ?? {})) {
       for (const [path, snapshot] of Object.entries(snapshots)) {
         snapshot.shape = '<location-dependent>'
-        if (path.startsWith('<fork>/')) {
+        masked.shapes += Number(count)
+        const rule = path.startsWith('<fork>/') ? 'forkFunctionHashes' : hasDynamicImport(path) ? 'dynamicImportFunctionHashes' : undefined
+        if (rule) {
           for (const fn of Object.values(snapshot.functions)) {
             fn.hash = '<location-dependent>'
+            masked[rule] += Number(count)
           }
         }
       }
@@ -298,9 +311,13 @@ function canonical(value: unknown): string {
     : item)
 }
 // Some subjects print their working directory in test names; the recorded runs used the study's checkout.
+// Module order is exact; cases are compared per module by identity, since concurrent tests finish in any order.
 function caseIdentity(execution: Execution, checkoutPath: string) {
   const name = (value: string) => value.split(checkoutPath).join('<checkout>')
-  return { order: execution.order, modules: execution.modules.map(m => [m.file, m.state, m.errors.length]), cases: execution.cases.map(t => [t.file, t.id, name(t.name), t.state]), errors: execution.errors }
+  const cases = execution.cases.map(t => [t.file, t.id, name(t.name), t.state])
+  const rank = new Map(execution.order.map((file, index) => [file, index]))
+  cases.sort((a, b) => rank.get(a[0])! - rank.get(b[0])! || (a[1] < b[1] ? -1 : a[1] > b[1] ? 1 : 0))
+  return { order: execution.order, modules: execution.modules.map(m => [m.file, m.state, m.errors.length]), cases, errors: execution.errors }
 }
 function diffKeys(left: unknown, right: unknown, path = ''): string[] {
   if (canonical(left) === canonical(right)) {
@@ -311,6 +328,10 @@ function diffKeys(left: unknown, right: unknown, path = ''): string[] {
     return [...keys].flatMap(key => diffKeys((left as Record<string, unknown>)[key], (right as Record<string, unknown>)[key], `${path}/${key}`)).slice(0, 20)
   }
   return [path || '/']
+}
+
+function permutations<T>(items: T[]): T[][] {
+  return items.length <= 1 ? [items] : items.flatMap((item, index) => permutations([...items.slice(0, index), ...items.slice(index + 1)]).map(rest => [item, ...rest]))
 }
 
 function shuffle<T>(items: T[], key: string) {
@@ -369,7 +390,7 @@ async function main() {
           outputs.set(build.name, { cases: caseIdentity(result, work), cache: cacheValue })
           execute[build.name] = {
             casesIdentical: JSON.stringify(caseIdentity(result, work)) === JSON.stringify(recordedExecution),
-            cacheIdentical: canonical(maskLocationDependent(cacheValue)) === canonical(recordedCache),
+            cacheIdentical: canonical(maskLocationDependent(cacheValue, true)) === canonical(recordedCache),
             cacheDifferences: diffKeys(maskLocationDependent(cacheValue), recordedCache),
             cases: result.cases.length,
             failed: result.cases.filter((t: { state: string }) => t.state === 'failed').length,
@@ -385,13 +406,17 @@ async function main() {
           cacheDifferences: others.flatMap(other => diffKeys(other.cache, first.cache)),
         }
         row.execute = execute
+        row.maskedAgainstRecording = { ...masked }
+        Object.assign(masked, { shapes: 0, forkFunctionHashes: 0, dynamicImportFunctionHashes: 0 })
       }
       if (pairs > 0) {
         const request = { ...json(join(recordedDirectory, 'oracle/request.json')) }
         const arms = [...builds.map(build => ({ arm: build.name, build, instrumented: true })), ...values.stock ? [{ arm: 'stock', build: builds[0], instrumented: false }] : []]
         const timings: Record<string, unknown>[] = []
+        const orders = shuffle(permutations(arms.map(a => a.arm)), `${values.seed}:${entry.revision}:bench`)
         for (let pair = 0; pair < pairs; pair++) {
-          for (const arm of shuffle(arms.map(a => a.arm), `${values.seed}:${entry.revision}:bench:${pair}`).map(name => arms.find(a => a.arm === name)!)) {
+          // Every order of the arms is used equally often (seeded), so position effects cancel across pairs.
+          for (const arm of orders[pair % orders.length].map(name => arms.find(a => a.arm === name)!)) {
             restore(`bench-${arm.arm}`)
             const { timing } = await phase(join(directory, 'bench', `${pair}-${arm.arm}`), arm.build, facade, native, { ...request, instrumented: arm.instrumented })
             timings.push({ pair, arm: arm.arm, processMs: timing.processMs, windows: timing.windows, load1Before: timing.load1Before, load1After: timing.load1After })
