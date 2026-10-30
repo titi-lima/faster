@@ -581,6 +581,10 @@ export class Vitest {
     if (this._coverageProvider != null) {
       return
     }
+    // Workers still collect V8 coverage for FASTER; only the unused report pipeline is skipped.
+    if (this.config.faster.ownsCoverage && !this.configOverride.coverage && this.projects.every(project => !project.isBrowserEnabled())) {
+      return null
+    }
     const coverageConfig = (this.configOverride.coverage
       ? this.getRootProject().serializedConfig.coverage
       : this.config.coverage) as unknown as SerializedCoverageConfig
@@ -956,7 +960,12 @@ export class Vitest {
 
           await this.initializeGlobalSetup(specs)
 
-          const sourceSnapshots = await captureTestRunSourceSnapshots(this, specs).catch(() => new Map())
+          // Workers start while FASTER snapshots the sources; they wait for it before loading project modules.
+          // Browser tests load modules from the dev server instead, so they start after the snapshot.
+          const sourceSnapshots = captureTestRunSourceSnapshots(this, specs).catch(() => new Map())
+          if (specs.some(spec => spec.project.isBrowserEnabled())) {
+            await sourceSnapshots
+          }
           const previousFiles = new Set(this.state.getFiles())
 
           try {
@@ -971,7 +980,7 @@ export class Vitest {
           this.cache.results.updateResults(files)
           try {
             if (!this.isCancelling) {
-              await saveTestRunSourceSnapshots(this, sourceSnapshots, files.filter(file => !previousFiles.has(file)))
+              await saveTestRunSourceSnapshots(this, await sourceSnapshots, files.filter(file => !previousFiles.has(file)))
             }
           }
           catch {}

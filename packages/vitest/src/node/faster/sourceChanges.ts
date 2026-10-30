@@ -1,6 +1,7 @@
 import type { File } from '@vitest/runner'
 import type { Vitest } from '../core'
 import type { TestSpecification } from '../test-specification'
+import type { TestImportCache } from './affectedTests'
 import type { FunctionSnapshot } from './functionCoverage'
 import { randomUUID } from 'node:crypto'
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
@@ -42,12 +43,12 @@ export async function getTestSourceChanges(
   specifications: TestSpecification[],
 ): Promise<Map<TestSpecification, FasterSourceChange>> {
   const state = await readState(getStatePath(vitest))
-  const hashes = new Map<string, Promise<string>>()
+  const sources = createSourceCache()
   const comparisons = await Promise.all(specifications.map(async (specification) => {
     const key = getTestKey(specification)
     const previous = state.tests[key]
     const current = previous
-      ? await readSnapshot(specification, Object.keys(previous), hashes)
+      ? await readSnapshot(specification, Object.keys(previous), sources)
       : undefined
     return [specification, previous, current] as const
   }))
@@ -73,7 +74,33 @@ export async function getTestSourceChanges(
   return changes
 }
 
-export async function captureTestRunSourceSnapshots(
+const pendingCaptures = new WeakMap<Vitest, Promise<void>>()
+
+/**
+ * Settles once the sources of the current run are snapshotted. Workers may
+ * start meanwhile, but every project module they load waits for it, so the
+ * snapshot still precedes all test code.
+ */
+export function getPendingTestRunSourceSnapshots(vitest: Vitest): Promise<void> | undefined {
+  return pendingCaptures.get(vitest)
+}
+
+export function captureTestRunSourceSnapshots(
+  vitest: Vitest,
+  specifications: TestSpecification[],
+): Promise<FasterSourceSnapshots> {
+  const capture = createTestRunSourceSnapshots(vitest, specifications)
+  const settled = capture.then(() => {}, () => {})
+  pendingCaptures.set(vitest, settled)
+  void settled.then(() => {
+    if (pendingCaptures.get(vitest) === settled) {
+      pendingCaptures.delete(vitest)
+    }
+  })
+  return capture
+}
+
+async function createTestRunSourceSnapshots(
   vitest: Vitest,
   specifications: TestSpecification[],
 ): Promise<FasterSourceSnapshots> {
@@ -83,10 +110,10 @@ export async function captureTestRunSourceSnapshots(
     return new Map()
   }
   const state = await readState(getStatePath(vitest))
-  const hashes = new Map<string, Promise<string>>()
+  const sources = createSourceCache()
   return new Map(await Promise.all(eligible.map(async specification => [
     specification,
-    await createSnapshot(specification, state.tests[getTestKey(specification)], hashes),
+    await createSnapshot(specification, state.tests[getTestKey(specification)], sources),
   ] as const)))
 }
 
@@ -103,6 +130,7 @@ export async function saveTestRunSourceSnapshots(
     .filter(file => file.result && ['pass', 'fail', 'skip'].includes(file.result.state))
     .map(file => `${file.projectName || ''}:${file.pool || 'forks'}:${resolve(file.filepath)}`))
   const state = await readState(statePath)
+  const sources = createSourceCache()
   let updated = false
   for (const [specification, snapshot] of snapshots) {
     if (!executedFiles.has(`${specification.project.name}:${specification.pool}:${resolve(specification.moduleId)}`)) {
@@ -110,7 +138,7 @@ export async function saveTestRunSourceSnapshots(
     }
     state.tests[getTestKey(specification)] = snapshot
     state.functionTests ??= Object.create(null)
-    const current = await readSnapshot(specification, Object.keys(snapshot))
+    const current = await readSnapshot(specification, Object.keys(snapshot), sources)
     state.functionTests![getTestKey(specification)] = sameSnapshot(snapshot, current)
       ? await collectFasterFunctionSnapshots(specification.project, specification.moduleId, snapshot)
       : {}
@@ -128,14 +156,29 @@ export async function clearFasterSourceSnapshots(vitest: Vitest): Promise<void> 
   }
 }
 
+/**
+ * Shared by all test files of one pass over the sources, so each source is
+ * read, hashed and resolved once instead of once per test file.
+ */
+interface SourceCache {
+  hashes: Map<string, Promise<string>>
+  relativePaths: Map<string, string>
+  absolutePaths: Map<string, string>
+  imports: TestImportCache
+}
+
+function createSourceCache(): SourceCache {
+  return { hashes: new Map(), relativePaths: new Map(), absolutePaths: new Map(), imports: new WeakMap() }
+}
+
 async function createSnapshot(
   specification: TestSpecification,
-  previous?: SourceSnapshot,
-  hashes?: Map<string, Promise<string>>,
+  previous: SourceSnapshot | undefined,
+  sources: SourceCache,
 ): Promise<SourceSnapshot> {
   let dependencies: Set<string>
   try {
-    dependencies = await getTestDependencies(specification)
+    dependencies = await getTestDependencies(specification, new Set(), sources.imports)
   }
   catch {
     // A broken transform should not prevent the test run. Keep tracking the
@@ -144,18 +187,29 @@ async function createSnapshot(
   }
   dependencies.add(specification.moduleId)
 
-  const paths = Array.from(dependencies, filepath => slash(relative(specification.project.config.root, filepath)))
-  return readSnapshot(specification, paths, hashes)
+  const root = specification.project.config.root
+  const paths = Array.from(dependencies, filepath => memoize(sources.relativePaths, `${root}\0${filepath}`, () => slash(relative(root, filepath))))
+  return readSnapshot(specification, paths, sources)
+}
+
+function memoize(cache: Map<string, string>, key: string, compute: () => string): string {
+  let value = cache.get(key)
+  if (value === undefined) {
+    value = compute()
+    cache.set(key, value)
+  }
+  return value
 }
 
 async function readSnapshot(
   specification: TestSpecification,
   paths: string[],
-  hashes = new Map<string, Promise<string>>(),
+  { hashes, absolutePaths }: SourceCache,
 ): Promise<SourceSnapshot> {
+  const root = specification.project.config.root
   const snapshot: SourceSnapshot = Object.create(null)
   await Promise.all(paths.map(async (relativePath) => {
-    const filepath = resolve(specification.project.config.root, relativePath)
+    const filepath = memoize(absolutePaths, `${root}\0${relativePath}`, () => resolve(root, relativePath))
     if (!hashes.has(filepath)) {
       hashes.set(filepath, readFile(filepath)
         .then(contents => hash('sha1', contents, 'hex'))

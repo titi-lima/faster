@@ -8,6 +8,7 @@ import { isBuiltin, toBuiltin } from '../../utils/modules'
 import { handleRollupError } from '../environments/fetchModule'
 import { normalizeResolvedIdToUrl } from '../environments/normalizeUrl'
 import { recordFasterFunctionCoverage } from '../faster/functionCoverage'
+import { getPendingTestRunSourceSnapshots } from '../faster/sourceChanges'
 
 interface MethodsOptions {
   cacheFs?: boolean
@@ -39,6 +40,7 @@ export function createMethodsRPC(project: TestProject, methodsOptions: MethodsOp
       if (!environment) {
         throw new Error(`The environment ${environmentName} was not defined in the Vite config.`)
       }
+      await getPendingTestRunSourceSnapshots(vitest)
 
       const start = performance.now()
 
@@ -62,6 +64,7 @@ export function createMethodsRPC(project: TestProject, methodsOptions: MethodsOp
       if (!environment) {
         throw new Error(`The environment ${environmentName} was not defined in the Vite config.`)
       }
+      await getPendingTestRunSourceSnapshots(vitest)
       const resolved = await environment.pluginContainer.resolveId(id, importer)
       if (!resolved) {
         return null
@@ -98,6 +101,7 @@ export function createMethodsRPC(project: TestProject, methodsOptions: MethodsOp
       if (!environment) {
         throw new Error(`The VM environment was not defined in the Vite config. This is a bug in Vitest. Please, open a new issue with reproduction.`)
       }
+      await getPendingTestRunSourceSnapshots(vitest)
 
       const url = normalizeResolvedIdToUrl(environment, fileURLToPath(id))
       const result = await environment.transformRequest(url).catch(handleRollupError)

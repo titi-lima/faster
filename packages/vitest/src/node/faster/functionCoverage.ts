@@ -45,6 +45,7 @@ interface FunctionModel {
 
 const coverageByRun = new WeakMap<Vitest, Map<string, TestCoverage[]>>()
 const modelCache = new WeakMap<TestProject, Map<string, Promise<FunctionModel>>>()
+const codeHashes = new WeakMap<object, { code: string; hash: string }>()
 
 export function resetFasterFunctionCoverage(vitest: Vitest): void {
   coverageByRun.set(vitest, new Map())
@@ -152,12 +153,10 @@ export async function collectFasterFunctionSnapshots(
         return
       }
       const called: Record<string, boolean | null> = Object.create(null)
+      const ranges = model.functions.length ? indexFunctionRanges(capture.values) : undefined
       for (const fn of model.functions) {
-        const matches = capture.values.flatMap(script => script.functions
-          .filter(value => value.ranges[0].endOffset - script.startOffset === fn.end
-            && value.ranges[0].startOffset - script.startOffset <= fn.bodyStart)
-          .map(value => value.ranges[0].count > 0))
-        called[fn.id] = matches.length ? matches.some(Boolean) : fn.parent && called[fn.parent] === false ? false : null
+        const matches = (ranges!.get(fn.end) || []).filter(range => range.start <= fn.bodyStart)
+        called[fn.id] = matches.length ? matches.some(range => range.called) : fn.parent && called[fn.parent] === false ? false : null
       }
       snapshots[path] = {
         sourceHash: sources[path],
@@ -204,6 +203,23 @@ export async function isFunctionDependencyAffected(
   }
 }
 
+/**
+ * Groups the V8 function ranges of every captured script by their end offset
+ * relative to the script start, the key the function model is matched on.
+ */
+function indexFunctionRanges(scripts: ScriptCoverage[]) {
+  const ranges = new Map<number, { start: number; called: boolean }[]>()
+  for (const script of scripts) {
+    for (const value of script.functions) {
+      const end = value.ranges[0].endOffset - script.startOffset
+      const entries = ranges.get(end) || []
+      entries.push({ start: value.ranges[0].startOffset - script.startOffset, called: value.ranges[0].count > 0 })
+      ranges.set(end, entries)
+    }
+  }
+  return ranges
+}
+
 async function transformFunctionModel(project: TestProject, path: string, environment: string) {
   const result = await project.vite.environments[environment]?.transformRequest(resolve(project.config.root, path))
   if (!result) {
@@ -214,7 +230,13 @@ async function transformFunctionModel(project: TestProject, path: string, enviro
     cache = new Map()
     modelCache.set(project, cache)
   }
-  const key = `${environment}:${path}:${hash('sha1', result.code, 'hex')}`
+  // Fetching a module rewrites its transform result code in place, so the code is part of the memo.
+  let digest = codeHashes.get(result)
+  if (digest?.code !== result.code) {
+    digest = { code: result.code, hash: hash('sha1', result.code, 'hex') }
+    codeHashes.set(result, digest)
+  }
+  const key = `${environment}:${path}:${digest.hash}`
   if (!cache.has(key)) {
     cache.set(key, createFunctionModel(result.code))
   }
