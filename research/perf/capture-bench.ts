@@ -28,10 +28,10 @@ async function main() {
     for (const project of ctx.projects) {
       const environment = project.vite.environments.ssr
       const original = environment.transformRequest.bind(environment)
-      environment.transformRequest = async (url: string, options?: unknown) => {
+      environment.transformRequest = async (url: string) => {
         const started = performance.now()
         try {
-          return await original(url, options as never)
+          return await original(url)
         }
         finally {
           perModule.set(url, (perModule.get(url) ?? 0) + performance.now() - started)
