@@ -4,7 +4,8 @@ import { prioritizationScores } from '../javascript/mutant-apfd'
 
 // Selection safety on the seeded-fault lane: for every revision with killed mutants, the frozen policy orders that
 // the replayed builds produce must equal the recorded ones, so every mutant is detected by the same selected files
-// at the same rank. Usage: mutant-equivalence.ts OUT.json STUDY=MUTANTS_DIR=REPLAY_DIR [...]
+// at the same rank. Usage: mutant-equivalence.ts OUT.json STUDY=MUTANTS_DIR=REPLAY_DIR[,REPLAY_DIR] [...]
+// (the first replay directory holding a revision is used)
 
 interface Policy { id: string; order: string[] }
 
@@ -34,7 +35,7 @@ for (const lane of lanes) {
     const expected = JSON.stringify(outcome(recorded))
     const result: Record<string, unknown> = { revision: row.revision, mutants: killed.length }
     for (const build of builds) {
-      const path = join(replay, 'revisions', row.revision, `features-${build}`, 'result.json')
+      const path = replay.split(',').map(directory => join(directory, 'revisions', row.revision, `features-${build}`, 'result.json')).find(existsSync) ?? ''
       if (!existsSync(path)) {
         result[build] = 'missing'
         continue
