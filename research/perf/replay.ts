@@ -1,6 +1,6 @@
 import { execFileSync, spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { closeSync, cpSync, existsSync, lstatSync, mkdirSync, openSync, readdirSync, readFileSync, readlinkSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { closeSync, cpSync, existsSync, lstatSync, mkdirSync, openSync, readdirSync, readFileSync, readlinkSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { loadavg } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -137,7 +137,8 @@ function prepareInstall(entry: Entry) {
     restoreNativeDependencies(native, install, mainRepo, subjectDir)
     writeFileSync(join(install, 'ready'), '')
   }
-  const facade = join(install, 'facade')
+  // Installs are shared by runs with different fork directories; each fork directory gets its own facade.
+  const facade = join(install, `facade-${sha(fork).slice(0, 12)}`)
   if (!existsSync(facade)) {
     mkdirSync(join(facade, 'node_modules/@vitest'), { recursive: true })
     for (const file of ['package.json', 'pnpm-lock.yaml']) {
@@ -184,6 +185,10 @@ function checkout(entry: Entry, native: string) {
 
 async function phase(directory: string, build: Build, facade: string, native: string, request: Record<string, unknown>) {
   activate(build)
+  // A dangling facade link would let Node fall back to another vitest further up the tree.
+  if (realpathSync(join(facade, 'node_modules/vitest')) !== realpathSync(join(fork, 'packages/vitest')) || readFileSync(join(fork, '.perf-build'), 'utf8') !== build.name) {
+    throw new Error(`The subject would not run build ${build.name} from ${fork}`)
+  }
   rmSync(directory, { recursive: true, force: true })
   mkdirSync(directory, { recursive: true })
   rmSync(join(root, 'node_modules'), { force: true })
