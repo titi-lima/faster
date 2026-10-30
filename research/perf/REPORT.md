@@ -14,7 +14,7 @@ The uncommitted harness (`research/javascript/*`) was copied unchanged into both
 - **Overhead vs stock Vitest (same fork, `faster: false`), paired and interleaved, 95% bootstrap intervals:**
   - **Valibot:** **+56% [48, 68] → +9.9% [6.0, 18.1]**. New is 2.56 s faster than old per run [2.07, 3.22], 23/24 units.
   - **Pathe:** **+29% [21, 33] → +12.4% [7.7, 17.8]**. New is 107 ms faster [86, 182], 21/24.
-  - **Unocss target:** wall time unchanged within noise: +12.2% [3.0, 27.3] → +10.5% [1.1, 22.9]; paired +0.44 s [−2.0, +4.1]. CPU overhead falls from +15.1% to +8.2%. An unexplained ≈ +19 ms wait between isolated test files remains open (§4).
+  - **Unocss target:** wall time unchanged within noise: +12.2% [3.0, 27.3] → +10.5% [1.1, 22.9]; paired +0.44 s [−2.0, +4.1]. CPU overhead falls from +15.1% to +8.2%. A small, diffuse wait between isolated test files appears in some batches; bisection could not attribute it to either change (§4).
   - The ≤ +15% target is met on medians for Valibot and Pathe; the upper interval bounds are 18% and 18% under load ≈ 12–15 from concurrent studies.
 - **Decisions unchanged:**
   - **All 51 Pathe, all 51 Valibot and both Unocss revisions:** byte-identical features/policy orders and selected sets vs the recordings for both builds, and identical case identities and outcomes. Caches are identical old vs new, except 7 `called` flags of asynchronous webpack callbacks in one Unocss test, which flip between runs of the *same* build (§3.3).
@@ -137,7 +137,7 @@ Wall time:
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Valibot | 24 | 5.86 / 9.11 / 6.53 | −2.56 s [−3.22, −2.07] | 23/24 | +56.1% [48.5, 67.7] | **+9.9% [6.0, 18.1]** | 14.8 / 19.4 |
 | Pathe | 24 | 0.94 / 1.20 / 1.07 | −107 ms [−182, −86] | 21/24 | +29.3% [20.6, 33.0] | **+12.4% [7.7, 17.8]** | 12.4 / 13.9 |
-| Unocss target | 12 | 42.2 / 46.6 / 46.7 | +0.44 s [−2.02, +4.07] | 5/12 | +12.2% [3.0, 27.3] | **+10.5% [1.1, 22.9]** | 11.9 / 18.6 | |
+| Unocss target | 12 | 42.2 / 46.6 / 46.7 | +0.44 s [−2.02, +4.07] | 5/12 | +12.2% [3.0, 27.3] | **+10.5% [1.1, 22.9]** | 11.9 / 18.6 |
 
 CPU time (user + sys, Vitest process and workers):
 
@@ -145,7 +145,7 @@ CPU time (user + sys, Vitest process and workers):
 | --- | --- | --- | --- | --- | --- |
 | Valibot | 7.61 / 14.29 / 10.02 | −4.20 s [−4.45, −4.08] | 24/24 | +86.5% [80.6, 91.8] | +31.5% [27.4, 34.5] |
 | Pathe | 1.35 / 1.89 / 1.74 | −160 ms [−200, −140] | 23/24 | +41.3% [38.5, 44.3] | +28.4% [25.5, 31.3] |
-| Unocss target | 55.0 / 63.0 / 60.8 | −3.33 s [−4.14, +0.59] | 9/12 | +15.1% [9.4, 23.2] | +8.2% [5.0, 17.2] | |
+| Unocss target | 55.0 / 63.0 / 60.8 | −3.33 s [−4.14, +0.59] | 9/12 | +15.1% [9.4, 23.2] | +8.2% [5.0, 17.2] |
 
 Median wall-time windows (before first module / modules / after last module, ms):
 
@@ -153,16 +153,32 @@ Median wall-time windows (before first module / modules / after last module, ms)
 | --- | --- | --- | --- |
 | Valibot | 1,398 / 4,300 / 80 | 3,416 / 4,143 / 1,401 | 2,103 / 4,137 / 209 |
 | Pathe | 734 / 156 / 59 | 912 / 167 / 127 | 798 / 170 / 96 |
-| Unocss target | 1,870 / 40,313 / 77 | 2,487 / 41,902 / 2,121 | 1,927 / 44,024 / 755 | |
+| Unocss target | 1,870 / 40,313 / 77 | 2,487 / 41,902 / 2,121 | 1,927 / 44,024 / 755 |
 
-**Open item: Unocss inter-file gaps.** On Unocss (98 test files, each in a fresh fork because of `isolate: true`), the new build saves ≈ 0.6 s before the first module and ≈ 1.4 s after the last. However, the time *between* consecutive test files grows by a median of +1.85 s per run (≈ 19 ms per transition; new is lower in only 2/12 units). It was seen in all three Unocss benchmarks (34 pairs: +1.6, +4.1, +1.8 s).
+**Open item: Unocss inter-file gaps.** On Unocss (98 test files, each in a fresh fork because of `isolate: true`), the new build saves about 0.6 s before the first module and 1.4 s after the last. Across all 42 Unocss pairs I ran, the summed time *between* consecutive test files is larger for new in 30 (two-sided sign test p = 0.008; median +1.9 s per run).
 
-What I checked:
-- Time *inside* modules is unchanged (+8 ms median), and total CPU is lower (−3.3 s). The extra time is therefore waiting, not work.
-- Workers receive identical runtime code and the same serialized config.
-- A synthetic project with 80 isolated test files showed no such gap: new was ≈ 0.25 s faster than old in 5/6 rounds.
+| Batch | Pairs | Gap sum, new - old (median) | Pairs where new is larger | Per-transition median, new - old |
+| --- | --- | --- | --- | --- |
+| `perf-bench-unocss-01` (unbalanced order) | 10 | +1.56 s | 8/10 | +18.8 ms |
+| `perf-bench-unocss-02` | 12 | +4.08 s | 8/12 | +44.9 ms |
+| `perf-bench-unocss-03` | 12 | +1.85 s | 10/12 | +17.1 ms |
+| `perf-bisect-unocss-01` (load 21-34) | 8 | +1.27 s | 4/8 | -11.7 ms |
 
-Net effect on Unocss wall time is +0.44 s [−2.0, +4.1], i.e. not distinguishable from zero. Bisecting C1 (no coverage provider) vs C4 (gated overlap) on Unocss would locate it; I did not do this within the session.
+The effect is diffuse and costs no work:
+- **Spread out:** no single transition dominates. Dozens of transitions are each about 30 ms slower for new in 60-65% of pairs, and the first few transitions are *faster* for new.
+- **No extra CPU:** time inside modules is unchanged, and total CPU is *lower* for new in every batch (bisect: -3.7 s, 8/8 pairs). The extra wall time is waiting, not work.
+- **Not reproduced elsewhere:** workers receive identical runtime code and serialized config, and a synthetic project with 80 isolated test files showed no gap.
+
+**Bisect** (`perf-bisect-unocss-01`, Latin-square order over old / new / `nogate` / `provider`, 8 cycles):
+- `nogate` is the new build but waits for capture before starting the pool (C4 reverted). `provider` is the new build with the coverage provider created again (C1 reverted).
+- The effect did not appear in this batch (new larger in only 4/8 pairs), so it cannot be attributed to either change: `nogate` - old -1.6 s (3/8 larger), `provider` - old -1.2 s (2/8 larger).
+- Wall time: new - old -0.97 s, `nogate` -2.66 s, `provider` -4.89 s (all within noise).
+
+**Conclusion:** a small, diffuse wait between isolated forks shows up in some batches and not in others, with no extra CPU and no code path I could attribute it to. Net Unocss wall time is +0.44 s [-2.0, +4.1] in the 12-pair benchmark, i.e. not distinguishable from zero, and CPU is consistently lower.
+
+**Relevance to the research metrics:**
+- **Not affected:** rank- and outcome-based metrics (APFD/APFDc, selection ratio, recall, unsafe selection, outcome differences) are exactly equal (section 3).
+- **Possibly affected, negligibly:** wall-clock metrics of *instrumented* runs (`processMs`, `firstFailureMs`, `firstNewFailureCandidateMs`) on isolated many-file subjects. Before the first failure only the transitions up to the failing file count, and FASTER ranks it early. Uninstrumented arms (stock, history-fast, ideal) are not affected.
 
 ## 5. Harness bugs found and fixed during this work (no effect on the frozen studies)
 
@@ -227,6 +243,12 @@ node --import tsx research/perf/mutant-equivalence.ts $W/perf-report-01/mutants-
 # Benchmarks (Unocss equivalence, Valibot, Pathe, Unocss benches in sequence), then summaries
 sh research/perf/final-runs.sh
 node --import tsx research/perf/bench-summary.ts valibot=$W/perf-bench-valibot-02/rows.json pathe=$W/perf-bench-pathe-02/rows.json unocss=$W/perf-bench-unocss-03/rows.json
+
+# Unocss gap bisect: two copies of the new build, each reverting one change, then 8 Latin-square cycles
+#   nogate:   in packages/vitest/src/node/core.ts, always `await sourceSnapshots` before pool.runTests
+#   provider: in Vitest.initCoverageProvider, drop the `faster.ownsCoverage` early return
+# (cp -cR the worktree, apply the edit, pnpm -C packages/vitest build)
+node --import tsx research/perf/replay.ts --study $W/unocss-pr5407-study-03 --out $W/perf-bisect-unocss-01 --forks $W/perf-forks-bisect --builds old=$OLD,new=$PWD,nogate=<nogate copy>,provider=<provider copy> --project unit --isolate --revisions b6476b5289 --checks '' --bench 8
 
 # Profiles
 node --import tsx research/perf/replay.ts --study $W/valibot-window50-study-01 --out $W/perf-profile-02-valibot --forks $W/perf-forks-prof --builds old=$OLD,new=$PWD --revisions d2aa25efbd --checks '' --bench 2 --stock --cpu-prof

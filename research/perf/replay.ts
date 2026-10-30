@@ -428,9 +428,13 @@ async function main() {
         const request = { ...json(join(recordedDirectory, 'oracle/request.json')) }
         const arms = [...builds.map(build => ({ arm: build.name, build, instrumented: true })), ...values.stock ? [{ arm: 'stock', build: builds[0], instrumented: false }] : []]
         const timings: Record<string, unknown>[] = []
-        const orders = shuffle(permutations(arms.map(a => a.arm)), `${values.seed}:${entry.revision}:bench`)
+        // Up to three arms: every order once per cycle. More arms: rotations of a seeded order (a Latin square).
+        const names = shuffle(arms.map(a => a.arm), `${values.seed}:${entry.revision}:bench`)
+        const orders = names.length <= 3
+          ? shuffle(permutations(arms.map(a => a.arm)), `${values.seed}:${entry.revision}:bench`)
+          : names.map((_, offset) => [...names.slice(offset), ...names.slice(0, offset)])
         for (let pair = 0; pair < pairs; pair++) {
-          // Every order of the arms is used equally often (seeded), so position effects cancel across pairs.
+          // Every arm takes every position equally often across pairs, so position effects cancel.
           for (const arm of orders[pair % orders.length].map(name => arms.find(a => a.arm === name)!)) {
             restore(`bench-${arm.arm}`)
             const { timing } = await phase(join(directory, 'bench', `${pair}-${arm.arm}`), arm.build, facade, native, { ...request, instrumented: arm.instrumented })
