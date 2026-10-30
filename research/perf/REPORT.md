@@ -14,7 +14,7 @@ The uncommitted harness (`research/javascript/*`) was copied unchanged into both
 - **Overhead vs stock Vitest (same fork, `faster: false`), paired and interleaved, 95% bootstrap intervals:**
   - **Valibot:** **+56% [48, 68] → +9.9% [6.0, 18.1]**. New is 2.56 s faster than old per run [2.07, 3.22], 23/24 units.
   - **Pathe:** **+29% [21, 33] → +12.4% [7.7, 17.8]**. New is 107 ms faster [86, 182], 21/24.
-  - **Unocss target:** __UNOCSS_SUMMARY__
+  - **Unocss target:** wall time unchanged within noise: +12.2% [3.0, 27.3] → +10.5% [1.1, 22.9]; paired +0.44 s [−2.0, +4.1]. CPU overhead falls from +15.1% to +8.2%. An unexplained ≈ +19 ms wait between isolated test files remains open (§4).
   - The ≤ +15% target is met on medians for Valibot and Pathe; the upper interval bounds are 18% and 18% under load ≈ 12–15 from concurrent studies.
 - **Decisions unchanged:**
   - **All 51 Pathe, all 51 Valibot and both Unocss revisions:** byte-identical features/policy orders and selected sets vs the recordings for both builds, and identical case identities and outcomes. Caches are identical old vs new, except 7 `called` flags of asynchronous webpack callbacks in one Unocss test, which flip between runs of the *same* build (§3.3).
@@ -137,7 +137,7 @@ Wall time:
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Valibot | 24 | 5.86 / 9.11 / 6.53 | −2.56 s [−3.22, −2.07] | 23/24 | +56.1% [48.5, 67.7] | **+9.9% [6.0, 18.1]** | 14.8 / 19.4 |
 | Pathe | 24 | 0.94 / 1.20 / 1.07 | −107 ms [−182, −86] | 21/24 | +29.3% [20.6, 33.0] | **+12.4% [7.7, 17.8]** | 12.4 / 13.9 |
-| Unocss target | 12 | __UNOCSS_WALL__ |
+| Unocss target | 12 | 42.2 / 46.6 / 46.7 | +0.44 s [−2.02, +4.07] | 5/12 | +12.2% [3.0, 27.3] | **+10.5% [1.1, 22.9]** | 11.9 / 18.6 | |
 
 CPU time (user + sys, Vitest process and workers):
 
@@ -145,7 +145,7 @@ CPU time (user + sys, Vitest process and workers):
 | --- | --- | --- | --- | --- | --- |
 | Valibot | 7.61 / 14.29 / 10.02 | −4.20 s [−4.45, −4.08] | 24/24 | +86.5% [80.6, 91.8] | +31.5% [27.4, 34.5] |
 | Pathe | 1.35 / 1.89 / 1.74 | −160 ms [−200, −140] | 23/24 | +41.3% [38.5, 44.3] | +28.4% [25.5, 31.3] |
-| Unocss target | __UNOCSS_CPU__ |
+| Unocss target | 55.0 / 63.0 / 60.8 | −3.33 s [−4.14, +0.59] | 9/12 | +15.1% [9.4, 23.2] | +8.2% [5.0, 17.2] | |
 
 Median wall-time windows (before first module / modules / after last module, ms):
 
@@ -153,9 +153,16 @@ Median wall-time windows (before first module / modules / after last module, ms)
 | --- | --- | --- | --- |
 | Valibot | 1,398 / 4,300 / 80 | 3,416 / 4,143 / 1,401 | 2,103 / 4,137 / 209 |
 | Pathe | 734 / 156 / 59 | 912 / 167 / 127 | 798 / 170 / 96 |
-| Unocss target | __UNOCSS_WINDOWS__ |
+| Unocss target | 1,870 / 40,313 / 77 | 2,487 / 41,902 / 2,121 | 1,927 / 44,024 / 755 | |
 
-__UNOCSS_NOTE__
+**Open item: Unocss inter-file gaps.** On Unocss (98 test files, each in a fresh fork because of `isolate: true`), the new build saves ≈ 0.6 s before the first module and ≈ 1.4 s after the last. However, the time *between* consecutive test files grows by a median of +1.85 s per run (≈ 19 ms per transition; new is lower in only 2/12 units). It was seen in all three Unocss benchmarks (34 pairs: +1.6, +4.1, +1.8 s).
+
+What I checked:
+- Time *inside* modules is unchanged (+8 ms median), and total CPU is lower (−3.3 s). The extra time is therefore waiting, not work.
+- Workers receive identical runtime code and the same serialized config.
+- A synthetic project with 80 isolated test files showed no such gap: new was ≈ 0.25 s faster than old in 5/6 rounds.
+
+Net effect on Unocss wall time is +0.44 s [−2.0, +4.1], i.e. not distinguishable from zero. Bisecting C1 (no coverage provider) vs C4 (gated overlap) on Unocss would locate it; I did not do this within the session.
 
 ## 5. Harness bugs found and fixed during this work (no effect on the frozen studies)
 
