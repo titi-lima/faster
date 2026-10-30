@@ -202,7 +202,10 @@ async function phase(directory: string, build: Build, facade: string, native: st
   let code: number | null
   try {
     code = await new Promise<number | null>((accept, reject) => {
-      const child = spawn(process.execPath, [
+      // time(1) reports user and system CPU of the Vitest process and every worker it reaped, which is far less
+      // sensitive to machine load than wall time.
+      const child = spawn('/usr/bin/time', [
+        process.execPath,
         ...values['cpu-prof'] ? ['--cpu-prof', `--cpu-prof-dir=${join(directory, 'profile')}`, '--import', join(here, 'main-only-profile.mjs')] : [],
         '--import',
         join(fork, 'node_modules/tsx/dist/loader.mjs'),
@@ -224,13 +227,15 @@ async function phase(directory: string, build: Build, facade: string, native: st
     throw new Error(`${directory} failed (code=${code}); inspect execution.log`)
   }
   const result = json(join(directory, 'result.json'))
+  const usage = /[\d.]+ real\s+([\d.]+) user\s+([\d.]+) sys/.exec(readFileSync(join(directory, 'execution.log'), 'utf8'))
+  const cpuMs = usage ? (Number(usage[1]) + Number(usage[2])) * 1000 : undefined
   // Reporter timestamps are performance.now() of the Vitest process: before the first module starts,
   // while modules run, and after the last one ends (including process exit).
   const modules = (result.modules ?? []) as { startedMs?: number; endedMs: number }[]
   const first = Math.min(...modules.map(m => m.startedMs ?? m.endedMs))
   const last = Math.max(...modules.map(m => m.endedMs))
   const windows = modules.length ? { beforeFirstModuleMs: first, modulesMs: last - first, afterLastModuleMs: processMs - last } : undefined
-  const timing = { build: build.name, processMs, code, load1Before: load, load1After: loadavg()[0], windows }
+  const timing = { build: build.name, processMs, cpuMs, code, load1Before: load, load1After: loadavg()[0], windows }
   write(join(directory, 'process.json'), timing)
   return { result, timing }
 }
@@ -269,10 +274,12 @@ function normalizePath(path: string) {
   return path.replace(/^(?:\.\.\/)+(?:[^/]+\/)*?packages\/([a-z-]+)\/dist\//, '<fork>/$1/dist/')
 }
 // Function models hash Vite's transform of each module. Module-level code embeds the absolute paths of resolved
-// imports (fork, native install), which differ from the recorded study; so do functions of the fork's own dist and
-// functions of modules with dynamic imports. Those hashes are masked against the recording (called flags, ids and
-// source hashes stay compared); builds staged at one path are compared unmasked.
-const masked = { shapes: 0, forkFunctionHashes: 0, dynamicImportFunctionHashes: 0 }
+// imports (fork, native install), which differ from the recorded study; so do functions of modules with dynamic
+// imports. The fork's own dist runs natively, so V8 offsets of the raw file are matched against a model of its Vite
+// transform, whose length depends on the fork's path: for those modules called flags are location-dependent too.
+// All of these are masked against the recording (ids and source hashes stay compared); builds staged at one path
+// are compared unmasked.
+const masked = { shapes: 0, forkFunctionModels: 0, dynamicImportFunctionHashes: 0 }
 function hasDynamicImport(path: string) {
   try {
     return /\bimport\s*\(/.test(readFileSync(join(root, path), 'utf8'))
@@ -288,10 +295,13 @@ function maskLocationDependent(cache: unknown, count = false) {
       for (const [path, snapshot] of Object.entries(snapshots)) {
         snapshot.shape = '<location-dependent>'
         masked.shapes += Number(count)
-        const rule = path.startsWith('<fork>/') ? 'forkFunctionHashes' : hasDynamicImport(path) ? 'dynamicImportFunctionHashes' : undefined
+        const rule = path.startsWith('<fork>/') ? 'forkFunctionModels' : hasDynamicImport(path) ? 'dynamicImportFunctionHashes' : undefined
         if (rule) {
           for (const fn of Object.values(snapshot.functions)) {
             fn.hash = '<location-dependent>'
+            if (rule === 'forkFunctionModels') {
+              (fn as { called?: unknown }).called = '<location-dependent>'
+            }
             masked[rule] += Number(count)
           }
         }
@@ -412,7 +422,7 @@ async function main() {
         }
         row.execute = execute
         row.maskedAgainstRecording = { ...masked }
-        Object.assign(masked, { shapes: 0, forkFunctionHashes: 0, dynamicImportFunctionHashes: 0 })
+        Object.assign(masked, { shapes: 0, forkFunctionModels: 0, dynamicImportFunctionHashes: 0 })
       }
       if (pairs > 0) {
         const request = { ...json(join(recordedDirectory, 'oracle/request.json')) }
@@ -424,7 +434,7 @@ async function main() {
           for (const arm of orders[pair % orders.length].map(name => arms.find(a => a.arm === name)!)) {
             restore(`bench-${arm.arm}`)
             const { timing } = await phase(join(directory, 'bench', `${pair}-${arm.arm}`), arm.build, facade, native, { ...request, instrumented: arm.instrumented })
-            timings.push({ pair, arm: arm.arm, processMs: timing.processMs, windows: timing.windows, load1Before: timing.load1Before, load1After: timing.load1After })
+            timings.push({ pair, arm: arm.arm, processMs: timing.processMs, cpuMs: timing.cpuMs, windows: timing.windows, load1Before: timing.load1Before, load1After: timing.load1After })
           }
         }
         restore('bench')
