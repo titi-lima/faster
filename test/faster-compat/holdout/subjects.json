@@ -1,0 +1,30 @@
+{
+  "vue-core": {
+    "repository": "https://github.com/vuejs/core.git",
+    "config": "vitest.config.ts",
+    "project": "unit",
+    "warmup": "b9456cb40db714a6f573a1713d92e96d4c9e9533",
+    "targets": [
+      "d6febaab8c0d95a6320e7e37276c00e8159e9cb2",
+      "9a1df69b63fecd743919af89a419783dd030b9f7",
+      "718f782b14c7e0165d20b6f4dd8664f78054b62c",
+      "243aabccf05fefb3760f2dab1c2d75aa424baad7"
+    ],
+    "hostDependencies": { "vite": "8.3.0", "jsdom": "30.0.1" }
+  },
+  "vueuse": {
+    "repository": "https://github.com/vueuse/vueuse.git",
+    "config": "vitest.config.ts",
+    "project": "unit",
+    "warmup": "81d8d29453aaf7c024e84ba948d79217acf2d730",
+    "targets": [
+      "c5a0850254d04cfc13697541d3222cfdafc2c512",
+      "49f760e09a2100f3cfa5a9403842913e0375ffdd",
+      "5cc1800524fbcaae99b003bb0e6231046777868f",
+      "e9fe32c9aae3af7e5f0a003df5176ea3f24f5cf8",
+      "ee4ec55b503da25522afed9b8c2be9b48589d65e",
+      "c02abdeeca573ac871790eae7c3bb7ce9c7da9eb"
+    ],
+    "hostDependencies": { "vite": "8.1.5", "jsdom": "30.0.0" }
+  }
+}

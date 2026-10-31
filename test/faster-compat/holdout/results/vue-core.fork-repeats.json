@@ -1,0 +1,167 @@
+{
+  "description": "Three consecutive full runs of the FASTER fork (packages/faster packed as vitest) on the same Vue core clone at 243aabccf05fefb3760f2dab1c2d75aa424baad7, project unit, optimizeFor apfd, one worker, nothing changed between runs. Raw recorded function observations of each run compared with the previous run of the same clone, so raw hashes are directly comparable.",
+  "command": "node node_modules/vitest/faster.mjs run --project unit (HOLDOUT_FASTER={\"optimizeFor\":\"apfd\"}), three times",
+  "comparisons": [
+    {
+      "runs": [
+        1,
+        2
+      ],
+      "differingTests": {}
+    },
+    {
+      "runs": [
+        2,
+        3
+      ],
+      "differingTests": {
+        "unit:threads:packages/runtime-core/__tests__/hydration.spec.ts": [
+          {
+            "path": "packages/runtime-dom/src/components/Transition.ts",
+            "id": "module.body[18].declarations[0].init",
+            "run2": {
+              "hash": "bdfe18572accb08967d40d0f0dda9fc34710c30a",
+              "called": false
+            },
+            "run3": {
+              "hash": "bdfe18572accb08967d40d0f0dda9fc34710c30a",
+              "called": true
+            }
+          },
+          {
+            "path": "packages/runtime-dom/src/components/Transition.ts",
+            "id": "module.body[19].body.body[16].declarations[0].init",
+            "run2": {
+              "hash": "87054e69655442799991e4473706d640f982113b",
+              "called": false
+            },
+            "run3": {
+              "hash": "87054e69655442799991e4473706d640f982113b",
+              "called": true
+            }
+          },
+          {
+            "path": "packages/runtime-dom/src/components/Transition.ts",
+            "id": "module.body[19].body.body[18].declarations[0].init.body.body[0].argument.body.body[1].declarations[0].init",
+            "run2": {
+              "hash": "bc4eca0aadb4be720e2da3034a4ff82f8caef6a4",
+              "called": false
+            },
+            "run3": {
+              "hash": "bc4eca0aadb4be720e2da3034a4ff82f8caef6a4",
+              "called": true
+            }
+          },
+          {
+            "path": "packages/runtime-dom/src/components/Transition.ts",
+            "id": "module.body[19].body.body[18].declarations[0].init.body.body[0].argument.body.body[3].expression.arguments[0]",
+            "run2": {
+              "hash": "4456d2a5dd63fe6922d032043f6d0ce8615ba24c",
+              "called": false
+            },
+            "run3": {
+              "hash": "4456d2a5dd63fe6922d032043f6d0ce8615ba24c",
+              "called": true
+            }
+          },
+          {
+            "path": "packages/runtime-dom/src/components/Transition.ts",
+            "id": "module.body[25]",
+            "run2": {
+              "hash": "a7a9d7e69f8bb497cacaa1c304ae030dd244dbdc",
+              "called": false
+            },
+            "run3": {
+              "hash": "a7a9d7e69f8bb497cacaa1c304ae030dd244dbdc",
+              "called": true
+            }
+          },
+          {
+            "path": "packages/runtime-dom/src/components/Transition.ts",
+            "id": "module.body[25].body.body[0].expression.arguments[0]",
+            "run2": {
+              "hash": "540bdaff28281c3d136aa72d2e6972eec3dc0369",
+              "called": false
+            },
+            "run3": {
+              "hash": "540bdaff28281c3d136aa72d2e6972eec3dc0369",
+              "called": true
+            }
+          },
+          {
+            "path": "packages/runtime-dom/src/components/Transition.ts",
+            "id": "module.body[29]",
+            "run2": {
+              "hash": "0ee6bf145c766a5ba6b3c49ed993807f3e5bb9c5",
+              "called": false
+            },
+            "run3": {
+              "hash": "0ee6bf145c766a5ba6b3c49ed993807f3e5bb9c5",
+              "called": true
+            }
+          },
+          {
+            "path": "packages/runtime-dom/src/components/Transition.ts",
+            "id": "module.body[30]",
+            "run2": {
+              "hash": "1dfa00bf0ec2a6caa5f363d869bee1d5ee222035",
+              "called": false
+            },
+            "run3": {
+              "hash": "1dfa00bf0ec2a6caa5f363d869bee1d5ee222035",
+              "called": true
+            }
+          },
+          {
+            "path": "packages/runtime-dom/src/components/Transition.ts",
+            "id": "module.body[30].body.body[1].declarations[0].init",
+            "run2": {
+              "hash": "468646dd13b71af4969370762f09b842bceef980",
+              "called": false
+            },
+            "run3": {
+              "hash": "468646dd13b71af4969370762f09b842bceef980",
+              "called": true
+            }
+          },
+          {
+            "path": "packages/runtime-dom/src/components/Transition.ts",
+            "id": "module.body[32]",
+            "run2": {
+              "hash": "5f3be9b134c429002825a247f461f053d16fefe7",
+              "called": false
+            },
+            "run3": {
+              "hash": "5f3be9b134c429002825a247f461f053d16fefe7",
+              "called": true
+            }
+          },
+          {
+            "path": "packages/runtime-dom/src/components/Transition.ts",
+            "id": "module.body[32].body.body[2].argument.arguments[0].argument.arguments[0]",
+            "run2": {
+              "hash": "b91e3997a9db2c086914f3ecefd85e5177c6bc64",
+              "called": false
+            },
+            "run3": {
+              "hash": "b91e3997a9db2c086914f3ecefd85e5177c6bc64",
+              "called": true
+            }
+          },
+          {
+            "path": "packages/runtime-dom/src/components/Transition.ts",
+            "id": "module.body[33]",
+            "run2": {
+              "hash": "79bf9677c553a318896d25fbad7b73b187f2675e",
+              "called": false
+            },
+            "run3": {
+              "hash": "79bf9677c553a318896d25fbad7b73b187f2675e",
+              "called": true
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
