@@ -1,0 +1,12 @@
+{
+  "name": "faster-compat-host-vitest-4.1",
+  "type": "module",
+  "private": true,
+  "description": "Upstream Vitest 4.1.7 with the vitest-faster plugin, installed outside the workspace so the workspace's vitest override does not apply",
+  "dependencies": {
+    "@vitest/coverage-v8": "4.1.7",
+    "vite": "7.1.5",
+    "vitest": "4.1.7",
+    "vitest-faster": "file:../../.pack/vitest-faster.tgz"
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "name": "vitest-faster",
+  "type": "module",
+  "version": "0.1.0",
+  "description": "FASTER test prioritization and selection for upstream Vitest 4 and 5",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "directory": "packages/vitest-faster"
+  },
+  "keywords": [
+    "vitest",
+    "vitest-plugin",
+    "test-prioritization",
+    "test-selection"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./coverage": "./dist/coverage.js",
+    "./runner": "./dist/runner.js",
+    "./package.json": "./package.json"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "vitest-faster": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "premove dist && rollup -c && node ./scripts/copy-types.mjs",
+    "dev": "rollup -c --watch --watch.include 'src/**'"
+  },
+  "peerDependencies": {
+    "@vitest/coverage-v8": "^4.0.0 || ^5.0.0",
+    "vite": "^6.0.0 || ^7.0.0 || ^8.0.0",
+    "vitest": "^4.0.0 || ^5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@vitest/coverage-v8": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "pathe": "catalog:",
+    "picomatch": "^4.0.3",
+    "tinyexec": "^1.0.2"
+  },
+  "devDependencies": {
+    "@vitest/runner": "workspace:*",
+    "@vitest/utils": "workspace:*",
+    "vite": "^7.1.5",
+    "vitest": "workspace:*"
+  }
+}

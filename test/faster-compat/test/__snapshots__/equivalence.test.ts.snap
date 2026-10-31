@@ -1,0 +1,84 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`FASTER makes the fork's decisions on upstream Vitest > 'cli-flags' > the fork's decisions 1`] = `
+[
+  "cold run [0]: test/both.test.js, test/mul.test.js, test/add.test.js, test/plain.test.js",
+  "no change [0]: (none)",
+  "edit a function no test calls [0]: (none)",
+  "edit mul [0]: test/both.test.js, test/mul.test.js",
+]
+`;
+
+exports[`FASTER makes the fork's decisions on upstream Vitest > 'order-dx' > the fork's decisions 1`] = `
+[
+  "cold run [0]: test/both.test.js, test/mul.test.js, test/add.test.js, test/plain.test.js",
+  "no change [0]: test/both.test.js, test/plain.test.js, test/mul.test.js, test/add.test.js",
+  "edit a function no test calls [0]: test/both.test.js, test/plain.test.js, test/mul.test.js, test/add.test.js",
+  "edit mul [0]: test/both.test.js, test/mul.test.js, test/plain.test.js, test/add.test.js",
+  "edit a test file [0]: test/add.test.js, test/both.test.js, test/plain.test.js, test/mul.test.js",
+  "add a function [0]: test/both.test.js, test/mul.test.js, test/add.test.js, test/plain.test.js",
+  "break mul.test [1]: test/mul.test.js, test/both.test.js, test/plain.test.js, test/add.test.js",
+  "keep the failure [1]: test/both.test.js, test/plain.test.js, test/add.test.js, test/mul.test.js",
+  "fix mul.test and add a test file [0]: test/mul.test.js, test/new.test.js, test/both.test.js, test/plain.test.js, test/add.test.js",
+  "edit the new test without running others [0]: test/new.test.js, test/both.test.js, test/plain.test.js, test/mul.test.js, test/add.test.js",
+]
+`;
+
+exports[`FASTER makes the fork's decisions on upstream Vitest > 'priorities' > the fork's decisions 1`] = `
+[
+  "cold run [0]: test/ranked.test.js, test/plain.test.js, test/both.test.js, test/mul.test.js, test/add.test.js",
+  "no change [0]: test/ranked.test.js, test/plain.test.js, test/both.test.js, test/mul.test.js, test/add.test.js",
+  "edit a function no test calls [0]: test/ranked.test.js, test/plain.test.js, test/both.test.js, test/mul.test.js, test/add.test.js",
+  "edit mul [0]: test/both.test.js, test/mul.test.js, test/ranked.test.js, test/plain.test.js, test/add.test.js",
+]
+`;
+
+exports[`FASTER makes the fork's decisions on upstream Vitest > 'projects' > the fork's decisions 1`] = `
+[
+  "cold run [0]: shared|test/both.test.js, shared|test/mul.test.js, shared|test/add.test.js, shared|test/plain.test.js, isolated|test/both.test.js, isolated|test/mul.test.js, isolated|test/add.test.js, isolated|test/plain.test.js, native|test/both.test.js, native|test/mul.test.js, native|test/add.test.js, native|test/plain.test.js, off|test/both.test.js, off|test/mul.test.js, off|test/add.test.js, off|test/plain.test.js",
+  "no change [0]: off|test/both.test.js, off|test/plain.test.js, off|test/mul.test.js, off|test/add.test.js",
+  "edit a function no test calls [0]: shared|test/both.test.js, shared|test/mul.test.js, shared|test/add.test.js, native|test/both.test.js, native|test/mul.test.js, native|test/add.test.js, off|test/both.test.js, off|test/plain.test.js, off|test/mul.test.js, off|test/add.test.js",
+  "edit mul [0]: shared|test/both.test.js, shared|test/mul.test.js, shared|test/add.test.js, isolated|test/both.test.js, isolated|test/mul.test.js, native|test/both.test.js, native|test/mul.test.js, native|test/add.test.js, off|test/both.test.js, off|test/plain.test.js, off|test/mul.test.js, off|test/add.test.js",
+]
+`;
+
+exports[`FASTER makes the fork's decisions on upstream Vitest > 'revision' > the fork's decisions 1`] = `
+[
+  "cold run [0]: test/both.test.js, test/mul.test.js, test/add.test.js, test/plain.test.js",
+  "commit an edit of mul [0]: test/both.test.js, test/mul.test.js, test/add.test.js, test/plain.test.js",
+  "no change since the previous run [0]: test/both.test.js, test/mul.test.js, test/add.test.js, test/plain.test.js",
+]
+`;
+
+exports[`FASTER makes the fork's decisions on upstream Vitest > 'select-apfd' > the fork's decisions 1`] = `
+[
+  "cold run [0]: test/both.test.js, test/mul.test.js, test/add.test.js, test/plain.test.js",
+  "no change [0]: (none)",
+  "edit a function no test calls [0]: (none)",
+  "edit mul [0]: test/both.test.js, test/mul.test.js",
+  "edit a test file [0]: test/add.test.js",
+  "add a function [0]: test/both.test.js, test/mul.test.js, test/add.test.js",
+  "break mul.test [1]: test/mul.test.js",
+  "keep the failure [1]: test/mul.test.js",
+  "fix mul.test and add a test file [0]: test/mul.test.js, test/new.test.js",
+  "edit the new test without running others [0]: test/new.test.js",
+]
+`;
+
+exports[`FASTER makes the fork's decisions on upstream Vitest > 'shard' > the fork's decisions 1`] = `
+[
+  "cold run [0]: test/mul.test.js, test/plain.test.js",
+  "no change [0]: test/add.test.js",
+  "edit a function no test calls [0]: test/both.test.js",
+  "edit mul [0]: test/mul.test.js",
+]
+`;
+
+exports[`FASTER makes the fork's decisions on upstream Vitest > 'user-coverage' > the fork's decisions 1`] = `
+[
+  "cold run [0]: test/both.test.js, test/mul.test.js, test/add.test.js, test/plain.test.js",
+  "no change [0]: (none)",
+  "edit a function no test calls [0]: (none)",
+  "edit mul [0]: test/both.test.js, test/mul.test.js",
+]
+`;
