@@ -48,15 +48,14 @@
     }
   },
   "dependencies": {
-    "pathe": "catalog:",
+    "pathe": "^2.0.3",
     "picomatch": "^4.0.3",
     "tinyexec": "^1.0.2"
   },
   "devDependencies": {
     "@types/picomatch": "^4.0.2",
-    "@vitest/runner": "workspace:*",
-    "@vitest/utils": "workspace:*",
-    "vite": "^7.1.5",
-    "vitest": "workspace:*"
+    "@vitest/coverage-v8": "4.1.7",
+    "vite": "7.1.5",
+    "vitest": "4.1.7"
   }
 }

@@ -22,8 +22,6 @@
   //   { "rule": "*semi", "severity": "off" }
   // ],
 
-  "vitest.ignoreWorkspace": true,
-  "vitest.configSearchPatternInclude": "test/{core,cli,config,browser,reporters}/{vitest,vite}.{config.ts,config.unit.mts}",
   "testing.automaticallyOpenTestResults": "neverOpen",
 
   // Enable eslint for all supported languages

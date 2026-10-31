@@ -1,17 +1,19 @@
 {
-  "name": "@vitest/example-faster-demo",
+  "name": "@vitest-faster/example-faster-demo",
   "type": "module",
   "private": true,
   "scripts": {
-    "test": "faster run",
-    "test:watch": "faster",
-    "test:vitest": "faster run --no-faster",
-    "demo:order": "faster run",
-    "demo:failure": "FASTER_DEMO_FAIL=1 faster run test/failure-demo.test.ts"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:vitest": "vitest-faster run --no-faster",
+    "demo:order": "vitest run",
+    "demo:failure": "FASTER_DEMO_FAIL=1 vitest run",
+    "demo:apfd": "vitest-faster run --faster.optimizeFor=apfd"
   },
   "devDependencies": {
-    "faster": "workspace:*",
+    "@vitest/coverage-v8": "4.1.7",
     "vite": "7.1.5",
-    "vitest": "workspace:*"
+    "vitest": "4.1.7",
+    "vitest-faster": "workspace:*"
   }
 }

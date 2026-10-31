@@ -7,10 +7,9 @@
     "test": "node ./scripts/install-hosts.mjs && vitest"
   },
   "devDependencies": {
-    "@vitest/coverage-v8": "workspace:*",
     "tinyexec": "^1.0.2",
-    "vite": "^7.1.5",
-    "vitest": "workspace:*",
+    "vite": "7.1.5",
+    "vitest": "4.1.7",
     "vitest-faster": "workspace:*"
   }
 }
