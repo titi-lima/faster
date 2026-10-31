@@ -5,8 +5,9 @@ files by previous failures and by source changes, checked down to the
 functions each test called, then by prior duration and file size. With
 `selectAffected` it runs only edited, affected, unknown and failing test files.
 
-The plugin runs the FASTER fork's own decision code, bundled unchanged, on
-Vitest's public extension points. On the same inputs it makes the fork's
+The plugin runs the FASTER fork's own decision code on Vitest's public
+extension points. The code lives in `src/decision`, identical to the fork's
+except for import specifiers. On the same inputs the plugin makes the fork's
 decisions: same files, same order, same tests inside each file, same
 selection. `test/faster-compat` in the FASTER repository checks this on every
 supported Vitest release.
@@ -76,22 +77,22 @@ The configuration is the same as for Vitest 5. Vitest 4.0 has no
 
 ## The fork (Vitest 4.1.7)
 
-The FASTER fork replaces Vitest itself and enables FASTER by default. Its
-`packages/faster` package is not published; `faster` on npm is an unrelated
-project, so never install `npm:faster`. Pack it from the repository and
-install it under the name `vitest`:
+The FASTER fork replaces Vitest itself and enables FASTER by default. It is no
+longer part of the FASTER repository; it remains in its history, last at
+commit `3e78239dc`. Its `packages/faster` package is not published; `faster`
+on npm is an unrelated project, so never install `npm:faster`. Build and pack
+it from that commit:
 
 ```bash
-pnpm install && pnpm build
-pnpm -C packages/faster pack
+node test/faster-compat/scripts/pack-fork.mjs 3e78239dc
 ```
 
 ```bash
-npm i -D vitest@file:/path/to/faster/packages/faster/faster-4.1.7-faster.0.tgz @vitest/coverage-v8@4.1.7
+npm i -D vitest@file:/path/to/faster/test/faster-compat/.fork/<commit>.tgz @vitest/coverage-v8@4.1.7
 ```
 
-Configure it with `test.faster` (see the fork's `faster` config docs). Keep
-using it if you need `immediateFailureOutput`.
+Configure it with `test.faster`. Keep using it only if you need
+`immediateFailureOutput`.
 
 ## Vitest 3 and older
 
