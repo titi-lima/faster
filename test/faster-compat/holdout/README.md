@@ -15,9 +15,16 @@ Environment variables:
 - `HOLDOUT_WORK` sets the work directory. The default is `.work` here.
 - `HOLDOUT_TIMING` sets how many interleaved timing repetitions run per
   configuration. The default is 3; `0` skips timing.
+- `FASTER_FORK_REF` sets the commit of this repository the fork host is built
+  from. The default is `3e78239dc`, the commit that merged the plugin.
 
 The results go to `results/<subject>.json`. `results/SUMMARY.md` gives the
 tables.
+
+The committed results were recorded at `73804bff8`, where the fork lived in
+this repository's `packages/`. Its decision code and plugin are identical to
+those at `3e78239dc`; the only difference in the fork is an unrelated fix that
+applies `--faster.*` CLI flags to every project.
 
 The committed `results/<subject>.json` came from a version of `run.mjs` with
 the same decisions, runs and comparisons as the committed one. The committed
@@ -78,8 +85,9 @@ There are 10 target revisions: 4 Vue core, 6 VueUse.
 
 These are the hosts of `test/faster-compat`:
 
-- **fork**: `packages/faster`, packed and installed under the name `vitest`,
-  with `@vitest/coverage-v8@4.1.7`.
+- **fork**: `packages/faster` at `FASTER_FORK_REF`, built by
+  `../scripts/pack-fork.mjs` from that commit, packed and installed under the
+  name `vitest`, with `@vitest/coverage-v8@4.1.7`.
 - **plugin**: upstream `vitest@4.1.7` and `@vitest/coverage-v8@4.1.7`, with
   `packages/vitest-faster` packed.
 

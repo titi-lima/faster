@@ -1,9 +1,10 @@
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { isDeepStrictEqual } from 'node:util'
+import { packFork } from '../scripts/pack-fork.mjs'
 import { canonicalStates } from '../test/harness.ts'
 
 /**
@@ -15,6 +16,7 @@ import { canonicalStates } from '../test/harness.ts'
  *
  * HOLDOUT_WORK      work directory (default: test/faster-compat/holdout/.work)
  * HOLDOUT_TIMING    interleaved timing repetitions per configuration (default 3, 0 skips)
+ * FASTER_FORK_REF   commit of this repository the fork is built from (see scripts/pack-fork.mjs)
  */
 const here = dirname(fileURLToPath(import.meta.url))
 const repository = resolve(here, '../../..')
@@ -59,17 +61,17 @@ function pack() {
   const destination = join(work, 'pack')
   rmSync(destination, { recursive: true, force: true })
   mkdirSync(destination, { recursive: true })
-  for (const [name, directory] of [['faster', 'faster'], ['vitest-faster', 'vitest-faster']]) {
-    const temporary = join(destination, `${name}-tmp`)
-    mkdirSync(temporary)
-    run('pnpm', ['pack', '--pack-destination', temporary], {
-      cwd: join(repository, 'packages', directory),
-      env: { ...process.env, npm_config_ignore_scripts: 'true' },
-    })
-    renameSync(join(temporary, readdirSync(temporary)[0]), join(destination, `${name}.tgz`))
-    rmSync(temporary, { recursive: true })
-  }
-  return destination
+  const fork = packFork()
+  copyFileSync(fork.tarball, join(destination, 'faster.tgz'))
+  const temporary = join(destination, 'vitest-faster-tmp')
+  mkdirSync(temporary)
+  run('pnpm', ['pack', '--pack-destination', temporary], {
+    cwd: join(repository, 'packages/vitest-faster'),
+    env: { ...process.env, npm_config_ignore_scripts: 'true' },
+  })
+  renameSync(join(temporary, readdirSync(temporary)[0]), join(destination, 'vitest-faster.tgz'))
+  rmSync(temporary, { recursive: true })
+  return { directory: destination, forkCommit: fork.commit }
 }
 
 /** The `test/faster-compat` hosts, with the subject's Vite and test environments. */
@@ -357,7 +359,7 @@ async function replay(name) {
   const subject = subjects[name]
   const output = join(here, 'results', `${name}.json`)
   const packs = pack()
-  const hosts = installHosts(name, subject, packs)
+  const hosts = installHosts(name, subject, packs.directory)
   const { origin, clones } = cloneSubject(name, subject)
   const result = {
     subject: name,
@@ -369,7 +371,7 @@ async function replay(name) {
       decideOptions: DECIDE_OPTIONS,
       maxWorkers: 1,
       fileParallelism: false,
-      hosts: { fork: 'packages/faster packed and installed as vitest, @vitest/coverage-v8@4.1.7', plugin: 'vitest@4.1.7, @vitest/coverage-v8@4.1.7, packages/vitest-faster packed' },
+      hosts: { fork: `packages/faster at ${packs.forkCommit}, packed and installed as vitest, @vitest/coverage-v8@4.1.7`, plugin: 'vitest@4.1.7, @vitest/coverage-v8@4.1.7, packages/vitest-faster packed' },
       hostDependencies: subject.hostDependencies,
     },
     faster: git(repository, 'rev-parse', 'HEAD'),

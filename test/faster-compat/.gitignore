@@ -3,3 +3,4 @@ hosts/*/fixtures
 fixtures
 .pack
 hosts/*/pnpm-lock.yaml
+.fork
