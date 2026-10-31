@@ -1,0 +1,5 @@
+hosts/*/node_modules
+hosts/*/fixtures
+fixtures
+.pack
+hosts/*/pnpm-lock.yaml

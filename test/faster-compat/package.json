@@ -1,0 +1,16 @@
+{
+  "name": "@vitest/test-faster-compat",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "setup:hosts": "node ./scripts/install-hosts.mjs",
+    "test": "node ./scripts/install-hosts.mjs && vitest"
+  },
+  "devDependencies": {
+    "@vitest/coverage-v8": "workspace:*",
+    "tinyexec": "^1.0.2",
+    "vite": "^7.1.5",
+    "vitest": "workspace:*",
+    "vitest-faster": "workspace:*"
+  }
+}

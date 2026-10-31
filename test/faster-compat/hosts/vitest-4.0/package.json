@@ -1,0 +1,11 @@
+{
+  "name": "faster-compat-host-vitest-4.0",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@vitest/coverage-v8": "4.0.18",
+    "vite": "7.1.5",
+    "vitest": "4.0.18",
+    "vitest-faster": "file:../../.pack/vitest-faster.tgz"
+  }
+}

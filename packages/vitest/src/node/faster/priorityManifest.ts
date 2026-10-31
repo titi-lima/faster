@@ -49,6 +49,12 @@ export interface ResolvedFasterOptions {
   priorityFile: string
   immediateFailureOutput: boolean
   priorities: TestPriorityMap
+  /**
+   * Coverage was enabled only to collect FASTER's function data, so the
+   * coverage report pipeline is not needed.
+   * @internal
+   */
+  ownsCoverage?: boolean
 }
 
 export function resolveFasterOptions(

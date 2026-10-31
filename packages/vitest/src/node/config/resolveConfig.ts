@@ -187,6 +187,7 @@ export function resolveConfig(
     && resolved.experimental?.viteModuleRunner !== false
     && resolved.coverage.provider === 'v8') {
     resolved.coverage = { ...resolved.coverage, enabled: true, reporter: options.coverage?.enabled ? resolved.coverage.reporter : [] }
+    resolved.faster.ownsCoverage = !options.coverage?.enabled && !options.coverage?.thresholds
   }
 
   if (resolved.retry && typeof resolved.retry === 'object' && typeof resolved.retry.condition === 'function') {
