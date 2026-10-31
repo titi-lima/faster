@@ -1,0 +1,99 @@
+{
+  "subject": "vueuse",
+  "repeats": 3,
+  "withinHost": {
+    "fork": [
+      {
+        "runs": [
+          1,
+          2
+        ],
+        "differingTests": {}
+      },
+      {
+        "runs": [
+          2,
+          3
+        ],
+        "differingTests": {}
+      }
+    ],
+    "plugin": [
+      {
+        "runs": [
+          1,
+          2
+        ],
+        "differingTests": {
+          "unit:forks:test/package-json-export.test.ts": [
+            {
+              "path": "test/package-json-export.test.ts",
+              "fields": [
+                {
+                  "field": "shape",
+                  "run1": "#0",
+                  "run2": "#1"
+                }
+              ],
+              "functions": []
+            }
+          ]
+        }
+      },
+      {
+        "runs": [
+          2,
+          3
+        ],
+        "differingTests": {
+          "unit:forks:test/package-json-export.test.ts": [
+            {
+              "path": "test/package-json-export.test.ts",
+              "fields": [
+                {
+                  "field": "shape",
+                  "run2": "#1",
+                  "run3": "#0"
+                }
+              ],
+              "functions": []
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "acrossHosts": [
+    {
+      "round": 1,
+      "differingTests": {}
+    },
+    {
+      "round": 2,
+      "differingTests": {
+        "unit:forks:test/package-json-export.test.ts": [
+          {
+            "path": "test/package-json-export.test.ts",
+            "fields": [
+              {
+                "field": "shape",
+                "fork": "#0",
+                "plugin": "#1"
+              }
+            ],
+            "functions": []
+          }
+        ]
+      }
+    },
+    {
+      "round": 3,
+      "differingTests": {}
+    }
+  ],
+  "outcomesEqual": [
+    true,
+    true,
+    true
+  ]
+}

@@ -1,0 +1,202 @@
+{
+  "subject": "vue-core",
+  "revision": "243aabccf05fefb3760f2dab1c2d75aa424baad7",
+  "repeats": 5,
+  "sets": {
+    "selected": [
+      "packages/reactivity/__tests__/computed.spec.ts",
+      "packages/reactivity/__tests__/effect.spec.ts",
+      "packages/reactivity/__tests__/effectScope.spec.ts",
+      "packages/reactivity/__tests__/ref.spec.ts",
+      "packages/runtime-core/__tests__/apiAsyncComponent.spec.ts",
+      "packages/runtime-core/__tests__/apiCreateApp.spec.ts",
+      "packages/runtime-core/__tests__/apiExpose.spec.ts",
+      "packages/runtime-core/__tests__/apiInject.spec.ts",
+      "packages/runtime-core/__tests__/apiLifecycle.spec.ts",
+      "packages/runtime-core/__tests__/apiOptions.spec.ts",
+      "packages/runtime-core/__tests__/apiSetupContext.spec.ts",
+      "packages/runtime-core/__tests__/apiSetupHelpers.spec.ts",
+      "packages/runtime-core/__tests__/apiWatch.spec.ts",
+      "packages/runtime-core/__tests__/component.spec.ts",
+      "packages/runtime-core/__tests__/componentEmits.spec.ts",
+      "packages/runtime-core/__tests__/componentProps.spec.ts",
+      "packages/runtime-core/__tests__/componentPublicInstance.spec.ts",
+      "packages/runtime-core/__tests__/componentSlots.spec.ts",
+      "packages/runtime-core/__tests__/components/BaseTransition.spec.ts",
+      "packages/runtime-core/__tests__/components/KeepAlive.spec.ts",
+      "packages/runtime-core/__tests__/components/Suspense.spec.ts",
+      "packages/runtime-core/__tests__/components/Teleport.spec.ts",
+      "packages/runtime-core/__tests__/directives.spec.ts",
+      "packages/runtime-core/__tests__/errorHandling.spec.ts",
+      "packages/runtime-core/__tests__/h.spec.ts",
+      "packages/runtime-core/__tests__/helpers/renderList.spec.ts",
+      "packages/runtime-core/__tests__/helpers/renderSlot.spec.ts",
+      "packages/runtime-core/__tests__/helpers/resolveAssets.spec.ts",
+      "packages/runtime-core/__tests__/helpers/toHandlers.spec.ts",
+      "packages/runtime-core/__tests__/helpers/useId.spec.ts",
+      "packages/runtime-core/__tests__/helpers/useModel.spec.ts",
+      "packages/runtime-core/__tests__/helpers/useTemplateRef.spec.ts",
+      "packages/runtime-core/__tests__/helpers/withMemo.spec.ts",
+      "packages/runtime-core/__tests__/hmr.spec.ts",
+      "packages/runtime-core/__tests__/hydration.spec.ts",
+      "packages/runtime-core/__tests__/misc.spec.ts",
+      "packages/runtime-core/__tests__/rendererAttrsFallthrough.spec.ts",
+      "packages/runtime-core/__tests__/rendererChildren.spec.ts",
+      "packages/runtime-core/__tests__/rendererComponent.spec.ts",
+      "packages/runtime-core/__tests__/rendererElement.spec.ts",
+      "packages/runtime-core/__tests__/rendererFragment.spec.ts",
+      "packages/runtime-core/__tests__/rendererOptimizedMode.spec.ts",
+      "packages/runtime-core/__tests__/rendererTemplateRef.spec.ts",
+      "packages/runtime-core/__tests__/scheduler.spec.ts",
+      "packages/runtime-core/__tests__/scopeId.spec.ts",
+      "packages/runtime-core/__tests__/vnode.spec.ts",
+      "packages/runtime-core/__tests__/vnodeHooks.spec.ts",
+      "packages/runtime-test/__tests__/testRuntime.spec.ts",
+      "packages/server-renderer/__tests__/render.spec.ts",
+      "packages/server-renderer/__tests__/ssrAttrFallthrough.spec.ts",
+      "packages/server-renderer/__tests__/ssrCompilerOptions.spec.ts",
+      "packages/server-renderer/__tests__/ssrComputed.spec.ts",
+      "packages/server-renderer/__tests__/ssrDirectives.spec.ts",
+      "packages/server-renderer/__tests__/ssrDynamicComponent.spec.ts",
+      "packages/server-renderer/__tests__/ssrRenderList.spec.ts",
+      "packages/server-renderer/__tests__/ssrScopeId.spec.ts",
+      "packages/server-renderer/__tests__/ssrSlot.spec.ts",
+      "packages/server-renderer/__tests__/ssrSuspense.spec.ts",
+      "packages/server-renderer/__tests__/ssrTeleport.spec.ts",
+      "packages/server-renderer/__tests__/webStream.spec.ts"
+    ],
+    "single": [
+      "packages/reactivity/__tests__/computed.spec.ts"
+    ]
+  },
+  "runs": {
+    "selected": {
+      "files": 60,
+      "samples": {
+        "fork": [
+          {
+            "wallMs": 59570.595947,
+            "exitCode": 0,
+            "files": 60
+          },
+          {
+            "wallMs": 61342.848916999996,
+            "exitCode": 0,
+            "files": 60
+          },
+          {
+            "wallMs": 59325.798209,
+            "exitCode": 0,
+            "files": 60
+          },
+          {
+            "wallMs": 60155.99870400003,
+            "exitCode": 0,
+            "files": 60
+          },
+          {
+            "wallMs": 61095.794622000016,
+            "exitCode": 0,
+            "files": 60
+          }
+        ],
+        "plugin": [
+          {
+            "wallMs": 61832.601222000005,
+            "exitCode": 0,
+            "files": 60
+          },
+          {
+            "wallMs": 58699.178862,
+            "exitCode": 0,
+            "files": 60
+          },
+          {
+            "wallMs": 62113.958017000055,
+            "exitCode": 0,
+            "files": 60
+          },
+          {
+            "wallMs": 58799.80571299995,
+            "exitCode": 0,
+            "files": 60
+          },
+          {
+            "wallMs": 59691.45450900006,
+            "exitCode": 0,
+            "files": 60
+          }
+        ]
+      },
+      "medianMs": {
+        "fork": 60155.99870400003,
+        "plugin": 59691.45450900006
+      },
+      "pluginOverFork": 0.9922776746291625
+    },
+    "single": {
+      "files": 1,
+      "samples": {
+        "fork": [
+          {
+            "wallMs": 3616.046860000002,
+            "exitCode": 1,
+            "files": 1
+          },
+          {
+            "wallMs": 3971.5886160000227,
+            "exitCode": 0,
+            "files": 1
+          },
+          {
+            "wallMs": 3441.422816000064,
+            "exitCode": 0,
+            "files": 1
+          },
+          {
+            "wallMs": 3520.6609709999757,
+            "exitCode": 0,
+            "files": 1
+          },
+          {
+            "wallMs": 3440.782537000021,
+            "exitCode": 0,
+            "files": 1
+          }
+        ],
+        "plugin": [
+          {
+            "wallMs": 3689.029230999993,
+            "exitCode": 0,
+            "files": 1
+          },
+          {
+            "wallMs": 3960.7014040000504,
+            "exitCode": 0,
+            "files": 1
+          },
+          {
+            "wallMs": 4215.496118999901,
+            "exitCode": 0,
+            "files": 1
+          },
+          {
+            "wallMs": 3625.233257999993,
+            "exitCode": 0,
+            "files": 1
+          },
+          {
+            "wallMs": 3735.2682389999973,
+            "exitCode": 0,
+            "files": 1
+          }
+        ]
+      },
+      "medianMs": {
+        "fork": 3520.6609709999757,
+        "plugin": 3735.2682389999973
+      },
+      "pluginOverFork": 1.0609565276997026
+    }
+  }
+}
