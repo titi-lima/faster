@@ -1,9 +1,9 @@
-import type { Vitest } from '../core'
-import type { TestSpecification } from '../test-specification'
-import type { TestSequencer } from './types'
-import { slash } from '@vitest/utils/helpers'
+import type { Vitest } from '../shims/vitest'
+import type { TestSpecification } from '../shims/vitest'
+import type { TestSequencer } from '../shims/vitest'
+import { slash } from '../shims/helpers'
 import { relative, resolve } from 'pathe'
-import { hash } from '../hash'
+import { hash } from './hash'
 
 export class BaseSequencer implements TestSequencer {
   protected ctx: Vitest

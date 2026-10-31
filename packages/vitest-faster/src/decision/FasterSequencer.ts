@@ -1,11 +1,11 @@
-import type { FasterSourceChange } from '../faster/sourceChanges'
-import type { TestSpecification } from '../test-specification'
+import type { FasterSourceChange } from './sourceChanges'
+import type { TestSpecification } from '../shims/vitest'
 import { stat } from 'node:fs/promises'
 import { relative, resolve } from 'pathe'
-import { GitNotFoundError } from '../errors'
-import { findAffectedTestSpecifications } from '../faster/affectedTests'
-import { getApfdPriorityScores, getFasterPriorityBucket } from '../faster/apfdPriority'
-import { getTestSourceChanges } from '../faster/sourceChanges'
+import { GitNotFoundError } from './errors'
+import { findAffectedTestSpecifications } from './affectedTests'
+import { getApfdPriorityScores, getFasterPriorityBucket } from './apfdPriority'
+import { getTestSourceChanges } from './sourceChanges'
 import { BaseSequencer } from './BaseSequencer'
 
 interface SchedulingGroup {

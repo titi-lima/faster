@@ -2,7 +2,7 @@ import type { Output } from 'tinyexec'
 import type { VCSProvider, VCSProviderOptions } from './vcs'
 import { resolve } from 'pathe'
 import { x } from 'tinyexec'
-import { GitNotFoundError } from '../errors'
+import { GitNotFoundError } from './errors'
 
 export class GitVCSProvider implements VCSProvider {
   private root!: string

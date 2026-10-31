@@ -1,4 +1,4 @@
-import type { Task } from '../types/tasks'
+import type { Task } from '../shims/vitest'
 import { relative } from 'pathe'
 
 export type TestPriorityMap = Record<string, number>

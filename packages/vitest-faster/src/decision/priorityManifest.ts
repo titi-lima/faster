@@ -1,4 +1,4 @@
-import type { TestPriorityMap } from '@vitest/runner/utils'
+import type { TestPriorityMap } from './priority'
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'pathe'
 

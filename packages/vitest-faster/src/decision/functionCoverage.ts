@@ -1,11 +1,11 @@
 import type { Profiler } from 'node:inspector'
-import type { AfterSuiteRunMeta } from '../../types/general'
-import type { Vitest } from '../core'
-import type { TestProject } from '../project'
+import type { AfterSuiteRunMeta } from '../shims/vitest'
+import type { Vitest } from '../shims/vitest'
+import type { TestProject } from '../shims/vitest'
 import { fileURLToPath } from 'node:url'
 import { relative, resolve } from 'pathe'
 import { parseAstAsync } from 'vite'
-import { hash } from '../hash'
+import { hash } from './hash'
 
 interface Node {
   type: string

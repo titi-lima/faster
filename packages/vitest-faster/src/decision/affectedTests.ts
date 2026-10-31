@@ -1,8 +1,8 @@
-import type { TestProject } from '../project'
-import type { TestSpecification } from '../test-specification'
+import type { TestProject } from '../shims/vitest'
+import type { TestSpecification } from '../shims/vitest'
 import { existsSync } from 'node:fs'
 import { join } from 'pathe'
-import { isWindows } from '../../utils/env'
+import { isWindows } from '../shims/env'
 
 export async function findAffectedTestSpecifications(
   specifications: TestSpecification[],
