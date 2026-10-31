@@ -53,6 +53,7 @@
     "tinyexec": "^1.0.2"
   },
   "devDependencies": {
+    "@types/picomatch": "^4.0.2",
     "@vitest/runner": "workspace:*",
     "@vitest/utils": "workspace:*",
     "vite": "^7.1.5",

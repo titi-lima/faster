@@ -1,6 +1,6 @@
+import type { Reporter, RunnerTestFile, TestProject, TestSpecification, Vitest } from 'vitest/node'
 import type { FasterOptions, ResolvedFasterOptions } from '../../vitest/src/node/faster/priorityManifest'
 import type { FasterSourceSnapshots } from '../../vitest/src/node/faster/sourceChanges'
-import type { Reporter, RunnerTestFile, TestProject, TestSpecification, Vitest } from 'vitest/node'
 import type { HostSequencerOptions } from './sequencer'
 import { readFileSync } from 'node:fs'
 import { stat } from 'node:fs/promises'
@@ -74,20 +74,16 @@ export class FasterHost {
   readonly context: any
 
   constructor(readonly vitest: Vitest) {
-    const host = this
     this.normalizeTransforms = Number.parseInt((vitest as any).version ?? '0') >= 5
-    this.context = {
-      get config() {
-        return vitest.config
-      },
+    this.context = Object.defineProperties({
       cache: {
-        getFileTestResults: (key: string) => host.results.get(key),
-        getFileStats: (key: string) => host.stats.get(key),
+        getFileTestResults: (key: string) => this.results.get(key),
+        getFileStats: (key: string) => this.stats.get(key),
       },
       vcs: {
-        async findChangedFiles(options: { root: string; changedSince?: string | boolean }): Promise<string[]> {
+        findChangedFiles: async (options: { root: string; changedSince?: string | boolean }): Promise<string[]> => {
           // Vitest 4.0 has no VCS provider API; the fork's default is this Git provider.
-          const vcs = (vitest as any).vcs ?? (host.git ??= new GitVCSProvider())
+          const vcs = (vitest as any).vcs ?? (this.git ??= new GitVCSProvider())
           try {
             return await vcs.findChangedFiles(options)
           }
@@ -96,10 +92,10 @@ export class FasterHost {
           }
         },
       },
-      get _coverageOptions() {
-        return { provider: host.coverage?.provider ?? vitest.config.coverage.provider }
-      },
-    }
+    }, {
+      config: { get: () => vitest.config },
+      _coverageOptions: { get: () => ({ provider: this.coverage?.provider ?? vitest.config.coverage.provider }) },
+    })
   }
 
   faster(project: TestProject): ResolvedFasterOptions {
@@ -114,29 +110,27 @@ export class FasterHost {
   project(project: TestProject): any {
     let facade = this.projectFacades.get(project)
     if (!facade) {
-      const host = this
       let base: object | undefined
       let config: any
-      facade = {
-        get name() {
-          return project.name
-        },
-        get config() {
-          if (project.config !== base) {
-            base = project.config
-            config = Object.create(project.config, {
-              faster: { get: () => host.faster(project) },
-              experimental: { value: (project.config as any).experimental ?? {} },
-            })
-          }
-          return config
-        },
-        get vite() {
-          return host.normalizeTransforms ? host.normalizedServer(project.vite) : project.vite
-        },
+      facade = Object.defineProperties({
         isBrowserEnabled: () => project.isBrowserEnabled(),
         vitest: this.context,
-      }
+      }, {
+        name: { get: () => project.name },
+        config: {
+          get: () => {
+            if (project.config !== base) {
+              base = project.config
+              config = Object.create(project.config, {
+                faster: { get: () => this.faster(project) },
+                experimental: { value: (project.config as any).experimental ?? {} },
+              })
+            }
+            return config
+          },
+        },
+        vite: { get: () => this.normalizeTransforms ? this.normalizedServer(project.vite) : project.vite },
+      })
       this.projectFacades.set(project, facade)
     }
     return facade
@@ -177,7 +171,7 @@ export class FasterHost {
       return result
     }
     const cached = this.transformResults.get(result)
-    if (cached?.code === result.code) {
+    if (cached && cached.code === result.code) {
       return cached.result
     }
     const normalized = { ...result, code: result.code.slice(0, result.code.lastIndexOf(MODULE_CACHE_COMMENT)) }
@@ -405,35 +399,34 @@ export class FasterHost {
   }
 
   private createReporter(): Reporter {
-    const host = this
     return {
-      onTestRunStart(specifications) {
-        host.previousFiles = specifications.length ? new Set(host.vitest.state.getFiles()) : undefined
+      onTestRunStart: (specifications) => {
+        this.previousFiles = specifications.length ? new Set(this.vitest.state.getFiles()) : undefined
       },
-      async onTestRunEnd(_modules, _errors, reason) {
-        const previousFiles = host.previousFiles
-        const capture = host.capture
-        host.previousFiles = undefined
-        host.capture = undefined
+      onTestRunEnd: async (_modules, _errors, reason) => {
+        const previousFiles = this.previousFiles
+        const capture = this.capture
+        this.previousFiles = undefined
+        this.capture = undefined
         if (!previousFiles) {
           return
         }
-        const files = host.vitest.state.getFiles()
-        host.results.update(files)
+        const files = this.vitest.state.getFiles()
+        this.results.update(files)
         try {
           if (reason !== 'interrupted' && capture) {
-            await saveTestRunSourceSnapshots(host.context, await capture, files.filter(file => !previousFiles.has(file)))
+            await saveTestRunSourceSnapshots(this.context, await capture, files.filter(file => !previousFiles.has(file)))
           }
         }
         catch {}
         try {
-          await host.results.write()
+          await this.results.write()
         }
         catch {}
       },
-      onTestRemoved(id) {
+      onTestRemoved: (id) => {
         if (id) {
-          host.results.remove(id)
+          this.results.remove(id)
         }
       },
     }

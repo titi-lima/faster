@@ -1,11 +1,11 @@
 import type { RunnerTestSuite } from 'vitest'
-import type { SerializedConfig } from 'vitest/node'
 import * as vitest from 'vitest'
 import { prioritizeTasks } from '../../runner/src/utils/priority'
 
-// Vitest 4.0 exports the default runner only from `vitest/runners`.
-const TestRunner: typeof vitest.TestRunner = (vitest as any).TestRunner
-  ?? (await import(/* @vite-ignore */ 'vitest/runners' as string)).VitestTestRunner
+// Vitest 4.0 exports the default runner only from `vitest/runners`; the class must exist when the module loads.
+// eslint-disable-next-line antfu/no-top-level-await
+const legacy = (vitest as any).TestRunner ? undefined : await import(/* @vite-ignore */ 'vitest/runners' as string)
+const TestRunner: typeof vitest.TestRunner = (vitest as any).TestRunner ?? legacy.VitestTestRunner
 
 const PRIORITIES_KEY = '__vitestFasterPriorities'
 
@@ -18,11 +18,11 @@ const PRIORITIES_KEY = '__vitestFasterPriorities'
 export default class FasterTestRunner extends TestRunner {
   private priorities: Record<string, number> | undefined
 
-  constructor(config: SerializedConfig) {
-    super(config as any)
+  constructor(config: ConstructorParameters<typeof TestRunner>[0]) {
+    super(config)
   }
 
-  override onBeforeRunSuite(suite: RunnerTestSuite): unknown {
+  override async onBeforeRunSuite(suite: RunnerTestSuite): Promise<void> {
     this.priorities ??= (vitest.inject as any)(PRIORITIES_KEY) ?? {}
     if (Object.keys(this.priorities!).length) {
       let start = 0
@@ -37,6 +37,6 @@ export default class FasterTestRunner extends TestRunner {
         start = end
       }
     }
-    return (TestRunner.prototype as any).onBeforeRunSuite?.call(this, suite)
+    await (TestRunner.prototype as any).onBeforeRunSuite?.call(this, suite)
   }
 }

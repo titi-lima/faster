@@ -103,7 +103,7 @@ export function renderConfig(host: HostName, config: ScenarioConfig): string {
 }
 
 export async function runScenario(host: HostName, scenario: Scenario): Promise<ScenarioResult> {
-  const root = join(hosts[host].dir, '.fixtures', scenario.name)
+  const root = join(hosts[host].dir, 'fixtures', scenario.name)
   rmSync(root, { recursive: true, force: true })
   mkdirSync(root, { recursive: true })
   const fixture: Fixture = {

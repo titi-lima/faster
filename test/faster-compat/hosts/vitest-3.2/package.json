@@ -1,0 +1,12 @@
+{
+  "name": "faster-compat-host-vitest-3.2",
+  "type": "module",
+  "private": true,
+  "description": "Upstream Vitest 3.2, which the plugin must refuse rather than degrade to dependency-level relevance",
+  "dependencies": {
+    "@vitest/coverage-v8": "3.2.7",
+    "vite": "7.1.5",
+    "vitest": "3.2.7",
+    "vitest-faster": "file:../../.pack/vitest-faster.tgz"
+  }
+}

@@ -23,9 +23,10 @@ export function createHostSequencer(options: HostSequencerOptions): TestSequence
 
     constructor(vitest: Vitest) {
       this.faster = options.faster
+      const Fallback = options.fallback
       this.ordering = options.faster
         ? new FasterSequencer(host.context) as unknown as TestSequencer
-        : new options.fallback(vitest)
+        : new Fallback(vitest)
     }
 
     async shard(files: TestSpecification[]): Promise<TestSpecification[]> {

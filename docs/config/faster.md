@@ -24,6 +24,35 @@ coverage reports are generated only when ordinary reporting is enabled. Isolated
 Node execution supports caller attribution. Missing observations or structural
 changes keep tests eligible.
 
+## Setup by Vitest version
+
+The options below are the same everywhere. Only the installation differs.
+
+- **Vitest 5.x, 4.1.x, 4.0.x:** add the `vitest-faster` plugin and install a
+  matching `@vitest/coverage-v8`. A `test.faster` block works unchanged:
+
+  ```ts
+  import { faster } from 'vitest-faster'
+  import { defineConfig } from 'vitest/config'
+
+  export default defineConfig({
+    plugins: [faster()],
+    test: { faster: { optimizeFor: 'apfd', selectAffected: true } },
+  })
+  ```
+
+  Pass `--faster.*` flags through `npx vitest-faster`. In multi-project
+  configurations, each project needs the plugin (`extends: true` inherits it).
+  `immediateFailureOutput` is fork-only.
+- **The fork (4.1.7):** install `packages/faster`, packed from this repository,
+  under the name `vitest`. FASTER is then enabled by default.
+- **Vitest 3 and older:** not supported. The plugin stops with an error rather
+  than silently losing function-level relevance.
+
+See [`packages/vitest-faster`](https://github.com/titi-lima/faster/tree/main/packages/vitest-faster#readme)
+for installation details and the places where function-level relevance does
+not apply.
+
 ## faster.enabled
 
 - **Type:** `boolean`

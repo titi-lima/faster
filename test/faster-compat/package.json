@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "setup:hosts": "node ./scripts/install-hosts.mjs",
-    "test": "vitest"
+    "test": "node ./scripts/install-hosts.mjs && vitest"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "workspace:*",

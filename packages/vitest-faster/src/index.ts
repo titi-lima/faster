@@ -32,10 +32,10 @@ export function faster(options: boolean | FasterOptions = {}): Plugin {
 }
 
 /**
- * Vitest 3 runs tests through vite-node, where the V8 ranges FASTER matches
- * against function bodies are not recorded relative to the transformed module.
- * FASTER would silently degrade to dependency-level relevance there, so the
- * plugin refuses to run instead.
+ * Vitest 3 executes tests through vite-node instead of the Vite module runner
+ * the fork's function matching is built on; on 3.2.7 the plugin recorded no
+ * function observations, which would silently degrade FASTER to
+ * dependency-level relevance. The plugin refuses to run instead.
  */
 function assertSupportedVitest(version: string | undefined): void {
   const major = Number.parseInt(version ?? '')

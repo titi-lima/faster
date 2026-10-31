@@ -1302,6 +1302,9 @@ importers:
         specifier: ^1.0.2
         version: 1.0.2
     devDependencies:
+      '@types/picomatch':
+        specifier: ^4.0.2
+        version: 4.0.2
       '@vitest/runner':
         specifier: workspace:*
         version: link:../runner
