@@ -33,7 +33,7 @@ export const origins = {
   'hash.ts': 'packages/vitest/src/node/hash.ts',
 }
 
-const SPECIFIER = /^((?:import|export)\b.*\bfrom '|\} from ')([^']+)('\s*)$/
+const SPECIFIER = /^((?:import|export)\s.*\sfrom '|\} from ')([^']+)('\s*)$/
 
 function specifiers(source) {
   const found = []
@@ -44,8 +44,17 @@ function specifiers(source) {
   return { masked, found }
 }
 
+/**
+ * @typedef {{ line: number, before: string, after: string }} SpecifierChange
+ * @typedef {{ line: number, before: string | undefined, after: string | undefined }} Difference
+ * @typedef {{ file: string, origin: string, identical: boolean, specifiers: SpecifierChange[], difference: Difference | undefined }} FileReport
+ * @typedef {{ commit: string, files: FileReport[], unchecked: string[], ok: boolean }} Report
+ */
+
+/** @returns {Report} each moved file compared with its origin at `ref` */
 export function checkDecisionCode(ref = process.env.FASTER_FORK_REF || DEFAULT_FORK_REF) {
   const commit = execFileSync('git', ['rev-parse', '--verify', `${ref}^{commit}`], { cwd: repository, encoding: 'utf8' }).trim()
+  /** @type {Report} */
   const report = { commit, files: [], unchecked: [], ok: true }
   const present = readdirSync(join(repository, decision)).filter(file => file.endsWith('.ts'))
   report.unchecked = present.filter(file => !(file in origins))

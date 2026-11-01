@@ -10,6 +10,7 @@ import pm from 'picomatch'
 import { BaseSequencer } from 'vitest/node'
 import { GitNotFoundError } from './decision/errors'
 import { recordFasterFunctionCoverage } from './decision/functionCoverage'
+import { GitVCSProvider } from './decision/git'
 import { resolveFasterOptions } from './decision/priorityManifest'
 import {
   captureTestRunSourceSnapshots,
@@ -17,7 +18,6 @@ import {
   getTestSourceChanges,
   saveTestRunSourceSnapshots,
 } from './decision/sourceChanges'
-import { GitVCSProvider } from './decision/git'
 import { FasterResults } from './results'
 import { createHostSequencer } from './sequencer'
 

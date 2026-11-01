@@ -1,5 +1,5 @@
-import { defineConfig } from 'vitest/config'
 import { faster } from 'vitest-faster'
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   plugins: [

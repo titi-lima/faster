@@ -127,8 +127,9 @@ pnpm install && pnpm build
 pnpm test
 ```
 
-The first run builds the fork, which takes a few minutes; later runs reuse the
-tarball cached in `test/faster-compat/.fork`.
+The first run builds the fork, which takes a few minutes and needs Node
+^20.19.0 or >=22.12.0; later runs reuse the tarball cached in
+`test/faster-compat/.fork`.
 
 ### The same holds on real commits
 

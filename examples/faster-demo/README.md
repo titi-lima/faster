@@ -20,13 +20,17 @@ the highest producer scores, so they run first on the first run.
 ## Show changed-source prioritization
 
 1. Run `pnpm -C examples/faster-demo demo:order` once.
-2. Edit `examples/faster-demo/src/catalog.ts` (change a product name or price).
+2. In `examples/faster-demo/src/catalog.ts`, change the body of `total`
+   without adding or removing a function, for example `?? 0` to `|| 0`.
 3. Run the same command again.
 
-The catalog and checkout tests move to the front: FASTER follows the change
-from `catalog.ts` to the tests that called the edited functions in the
-previous run. The full suite still runs; without `selectAffected`, FASTER only
-changes the order.
+The checkout and catalog tests move ahead of the availability tests, although
+all three import `catalog.ts`: FASTER follows the change to the tests that
+called `total` in the previous run, and the availability tests never did.
+Editing the catalog data outside a function, or adding or removing a function,
+affects every test that imports the module, so the order stays the same. The
+full suite still runs; without `selectAffected`, FASTER only changes the
+order.
 
 ## Show failure ordering
 

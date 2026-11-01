@@ -31,6 +31,11 @@ export function packFork(ref = process.env.FASTER_FORK_REF || DEFAULT_FORK_REF) 
   if (existsSync(tarball)) {
     return { commit, tarball }
   }
+  const [major, minor] = process.versions.node.split('.').map(Number)
+  if (major < 20 || major === 21 || (major === 20 && minor < 19) || (major === 22 && minor < 12)) {
+    // pnpm silently skips the oxc native bindings the fork's build needs.
+    throw new Error(`Building the FASTER fork needs Node ^20.19.0 || >=22.12.0, found ${process.versions.node}`)
+  }
   console.log(`Building the FASTER fork at ${commit}`)
   const work = mkdtempSync(join(tmpdir(), 'faster-fork-'))
   try {
