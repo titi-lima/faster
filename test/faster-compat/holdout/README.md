@@ -19,12 +19,15 @@ Environment variables:
   from. The default is `3e78239dc`, the commit that merged the plugin.
 
 The results go to `results/<subject>.json`. `results/SUMMARY.md` gives the
-tables.
+tables. `node test/faster-compat/holdout/summarize.mjs <directory>` writes the
+tables for the results in another directory.
 
-The committed results were recorded at `73804bff8`, where the fork lived in
-this repository's `packages/`. Its decision code and plugin are identical to
-those at `3e78239dc`; the only difference in the fork is an unrelated fix that
-applies `--faster.*` CLI flags to every project.
+The committed `results/<subject>.json` were recorded at `73804bff8`, where the
+fork lived in this repository's `packages/`. That commit is on this branch as
+`1bbfde117`, with the same tree and a signature. Its decision code and plugin
+are identical to those at `3e78239dc`; the only difference in the fork is an
+unrelated fix that applies `--faster.*` CLI flags to every project.
+`results/2026-11-03` holds two later reruns; see "Reruns of 2026-11-03".
 
 The committed `results/<subject>.json` came from a version of `run.mjs` with
 the same decisions, runs and comparisons as the committed one. The committed
@@ -64,7 +67,8 @@ There are 10 target revisions: 4 Vue core, 6 VueUse.
     the next.
     - Seen only on the plugin host: in 2 of its 7 chain runs, and its 3
       `determinism.mjs` repeats alternated between the two values.
-    - The fork's 10 full runs (7 chain, 3 repeats) never varied.
+    - The fork's 10 full runs (7 chain, 3 repeats) never varied. It did in
+      a rerun of 2026-11-03.
     - Single-file runs and 3 instrumented full runs did not reproduce it.
     - The root cause is not identified.
     - Decisions never read a test file's own function snapshot; its own
@@ -80,6 +84,50 @@ There are 10 target revisions: 4 Vue core, 6 VueUse.
     - The gap appears only with change tracking on.
     - It matches the pre-run source snapshot. The plugin takes it before
       workers start; the fork takes it while its worker starts up.
+
+## Reruns of 2026-11-03
+
+`results/2026-11-03/run-1` and `run-2` hold two reruns of `run.mjs` at
+`9a6764e9b`, on Node 22.22.2. The fork was built from `3e78239dc` by
+`pack-fork.mjs`. Each directory has its own `SUMMARY.md`, and paths in the
+JSON files are relative to the repository. `run-1` used 3 timing repetitions
+and `run-2` used 5.
+
+macOS put the machine to sleep during parts of both reruns (`pmset -g log`):
+- once during the first VueUse timing round of `run-1`;
+- several times during `run-2`, so some of its chain runs took from about 3
+  to 33 minutes instead of about 27 s (Vue core) or 68 s (VueUse).
+
+Findings:
+
+- **Selected set and orders with shared durations:** identical at every
+  target in both reruns. Each host ran the files in the order it decided,
+  except for the Vue core warm-up described below and the failed run below.
+- **Per-file outcomes:** identical at every revision, with one exception, in
+  `run-2` at VueUse `5cc18005`. After a sleep, the plugin host's worker for
+  `packages/math/useAbs/index.test.ts` failed to start, so that run exited
+  with 1 and has no outcome for the file.
+- **Persisted state:** in `run-1`, identical at every revision, including the
+  three that differed on 2026-10-31. `run-2` showed the same two observations
+  as before:
+  - Vue core `d6febaab`, `9a1df69b` and `718f782b`: the `Transition.ts`
+    `called` flag in `hydration.spec.ts`. It flipped once within each host,
+    on the plugin after the warm-up and on the fork at the last target.
+  - VueUse `49f760e0`: the structural hash of `test/package-json-export.test.ts`.
+    This time the fork's hash changed for that one run, while the plugin's
+    stayed the same. So this variation is not specific to the plugin.
+- **Full order with each host's own durations:** 1–2% of file pairs swap
+  duration rank in `run-1`, against 6–14% on 2026-10-31.
+- **Performance**, from the rounds the machine stayed awake:
+  - Vue core (`run-1`): 26.5 s on the fork and 27.4 s on the plugin with
+    FASTER on, a ratio of 1.036. With FASTER off, 22.3 s and 22.4 s.
+    - The 0.9 s gap is the plugin's `sort`. It waits for the pre-run source
+      snapshot and took about 0.87 s at each target, against 8 ms for the
+      fork.
+    - On 2026-10-31 the runs took about 119 s, and the gap was within noise.
+  - VueUse (`run-2`): 67.5 s on the fork and 67.6 s on the plugin, a ratio of
+    1.001. With FASTER off, 63.3 s and 62.0 s; one fork sample includes a
+    sleep.
 
 ## Hosts
 
