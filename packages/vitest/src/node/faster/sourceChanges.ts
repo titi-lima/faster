@@ -3,13 +3,14 @@ import type { Vitest } from '../core'
 import type { TestSpecification } from '../test-specification'
 import type { TestImportCache } from './affectedTests'
 import type { FunctionSnapshot } from './functionCoverage'
-import { randomUUID } from 'node:crypto'
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import type { FasterStateFile } from './stateFile'
+import { readFile } from 'node:fs/promises'
 import { slash } from '@vitest/utils/helpers'
-import { dirname, relative, resolve } from 'pathe'
+import { relative, resolve } from 'pathe'
 import { hash } from '../hash'
 import { getTestDependencies } from './affectedTests'
 import { collectFasterFunctionSnapshots, isFunctionDependencyAffected, isFunctionSnapshot, resetFasterFunctionCoverage } from './functionCoverage'
+import { clearFasterStateFile, readFasterStateFile, resolveFasterStateFile, writeFasterStateFile } from './stateFile'
 
 const STATE_VERSION = 1
 const MISSING_SOURCE = '<missing>'
@@ -42,7 +43,7 @@ export async function getTestSourceChanges(
   vitest: Vitest,
   specifications: TestSpecification[],
 ): Promise<Map<TestSpecification, FasterSourceChange>> {
-  const state = await readState(getStatePath(vitest))
+  const state = await readState(getFasterSourcesStateFile(vitest))
   const sources = createSourceCache()
   const comparisons = await Promise.all(specifications.map(async (specification) => {
     const key = getTestKey(specification)
@@ -109,7 +110,7 @@ async function createTestRunSourceSnapshots(
   if (vitest.config.cache === false || !eligible.length) {
     return new Map()
   }
-  const state = await readState(getStatePath(vitest))
+  const state = await readState(getFasterSourcesStateFile(vitest))
   const sources = createSourceCache()
   return new Map(await Promise.all(eligible.map(async specification => [
     specification,
@@ -122,14 +123,14 @@ export async function saveTestRunSourceSnapshots(
   snapshots: FasterSourceSnapshots,
   files: File[],
 ): Promise<void> {
-  const statePath = getStatePath(vitest)
-  if (!statePath || !snapshots.size) {
+  const stateFile = getFasterSourcesStateFile(vitest)
+  if (!stateFile || !snapshots.size) {
     return
   }
   const executedFiles = new Set(files
     .filter(file => file.result && ['pass', 'fail', 'skip'].includes(file.result.state))
     .map(file => `${file.projectName || ''}:${file.pool || 'forks'}:${resolve(file.filepath)}`))
-  const state = await readState(statePath)
+  const state = await readState(stateFile)
   const sources = createSourceCache()
   let updated = false
   for (const [specification, snapshot] of snapshots) {
@@ -145,14 +146,14 @@ export async function saveTestRunSourceSnapshots(
     updated = true
   }
   if (updated) {
-    await writeState(statePath, state)
+    await writeFasterStateFile(stateFile.path, JSON.stringify(state))
   }
 }
 
 export async function clearFasterSourceSnapshots(vitest: Vitest): Promise<void> {
-  const statePath = getStatePath(vitest)
-  if (statePath) {
-    await rm(statePath, { force: true })
+  const stateFile = getFasterSourcesStateFile(vitest)
+  if (stateFile) {
+    await clearFasterStateFile(stateFile, JSON.stringify({ version: STATE_VERSION, tests: {} }))
   }
 }
 
@@ -232,17 +233,31 @@ function getTestKey(specification: TestSpecification): string {
   return `${specification.project.name}:${specification.pool}:${filepath}`
 }
 
-function getStatePath(vitest: Vitest): string | undefined {
-  return vitest.config.cache === false ? undefined : resolve(vitest.config.cache.dir, 'faster-sources.json')
+const sourcesStateFiles = new WeakMap<Vitest, FasterStateFile>()
+
+export function getFasterSourcesStateFile(vitest: Vitest): FasterStateFile | undefined {
+  if (vitest.config.cache === false) {
+    return undefined
+  }
+  let file = sourcesStateFiles.get(vitest)
+  if (!file) {
+    file = resolveFasterStateFile(vitest.config.root, vitest.config.cache.dir, 'faster-sources.json')
+    sourcesStateFiles.set(vitest, file)
+  }
+  return file
 }
 
-async function readState(filepath?: string): Promise<FasterSourceState> {
+async function readState(file?: FasterStateFile): Promise<FasterSourceState> {
   const state: FasterSourceState = { version: STATE_VERSION, tests: Object.create(null) }
-  if (!filepath) {
+  if (!file) {
+    return state
+  }
+  const contents = await readFasterStateFile(file)
+  if (!contents) {
     return state
   }
   try {
-    const parsed = JSON.parse(await readFile(filepath, 'utf8'))
+    const parsed = JSON.parse(contents)
     if (parsed?.version !== STATE_VERSION || !isRecord(parsed.tests)) {
       return state
     }
@@ -266,16 +281,4 @@ async function readState(filepath?: string): Promise<FasterSourceState> {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
-}
-
-async function writeState(filepath: string, state: FasterSourceState): Promise<void> {
-  await mkdir(dirname(filepath), { recursive: true })
-  const temporaryPath = `${filepath}.${process.pid}.${randomUUID()}.tmp`
-  try {
-    await writeFile(temporaryPath, JSON.stringify(state))
-    await rename(temporaryPath, filepath)
-  }
-  finally {
-    await rm(temporaryPath, { force: true })
-  }
 }

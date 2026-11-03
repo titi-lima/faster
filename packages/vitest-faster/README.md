@@ -155,7 +155,12 @@ A project without the plugin behaves like `faster: false` in the fork.
   Vitest's default runner. Projects with their own `runner` keep it and skip
   per-test priorities, with a warning.
 - **History.** FASTER keeps its own `faster-results.json` and
-  `faster-sources.json` in Vitest's cache directory. `vitest --clearCache`
+  `faster-sources.json`. When Vitest's root is the top of a Git worktree,
+  they live in that worktree's Git directory (`.git/faster/` in the main
+  worktree, `.git/worktrees/<name>/faster/` in a linked one), so each
+  worktree keeps its own history and `git worktree remove` deletes it. A
+  worktree without history starts from a copy of the main worktree's.
+  Anywhere else they stay in Vitest's cache directory. `vitest --clearCache`
   clears them.
 
 ## Where function-level relevance does not apply
