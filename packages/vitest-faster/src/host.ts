@@ -324,7 +324,7 @@ export class FasterHost {
       return relevant.filter((spec) => {
         const change = changes.get(this.specification(spec))
         const failed = this.results.get(`${spec.project.name}:${relative(vitest.config.root, spec.moduleId)}`)?.failed
-        return !change || !change.known || change.testChanged || change.changed || failed
+        return !change || !change.known || change.testChanged || change.changed || change.failed || failed
       })
     }
   }

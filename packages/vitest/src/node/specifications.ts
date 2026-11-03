@@ -48,7 +48,7 @@ export class VitestSpecifications {
     return specifications.filter((spec) => {
       const change = changes.get(spec)
       const failed = this.vitest.cache.getFileTestResults(`${spec.project.name}:${relative(this.vitest.config.root, spec.moduleId)}`)?.failed
-      return !change || !change.known || change.testChanged || change.changed || failed
+      return !change || !change.known || change.testChanged || change.changed || change.failed || failed
     })
   }
 

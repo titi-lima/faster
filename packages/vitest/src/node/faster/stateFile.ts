@@ -28,13 +28,14 @@ export function resolveFasterStateFile(root: string, cacheDir: string, name: str
 
 function resolveFasterStateLocation(root: string, cacheDir: string): FasterStateLocation {
   const cacheInRoot = relative(root, cacheDir)
-  const gitDirs = cacheInRoot.startsWith('..') || isAbsolute(cacheInRoot) ? undefined : resolveGitDirs(root)
+  const outsideRoot = cacheInRoot === '..' || cacheInRoot.startsWith('../') || isAbsolute(cacheInRoot)
+  const gitDirs = outsideRoot ? undefined : resolveGitDirs(root)
   if (!gitDirs) {
     return { dir: cacheDir, seedDirs: [] }
   }
   const dir = join(gitDirs.gitDir, 'faster', cacheInRoot)
   const shared = join(gitDirs.commonDir, 'faster', cacheInRoot)
-  return { dir, seedDirs: shared === dir ? [cacheDir] : [shared, cacheDir] }
+  return { dir, seedDirs: shared === dir ? [cacheDir] : [cacheDir, shared] }
 }
 
 function resolveGitDirs(root: string): GitDirs | undefined {
@@ -49,6 +50,9 @@ function resolveGitDirs(root: string): GitDirs | undefined {
       return undefined
     }
     const absoluteGitDir = resolve(root, gitDir)
+    if (!statSync(absoluteGitDir, { throwIfNoEntry: false })?.isDirectory()) {
+      return undefined
+    }
     return { gitDir: absoluteGitDir, commonDir: readCommonDir(absoluteGitDir) }
   }
   catch {

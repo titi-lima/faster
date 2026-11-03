@@ -53,7 +53,7 @@ test('tracks edits made during execution against the source that was executed', 
   }, options)
   const specifications = await ctx!.globTestSpecifications()
   expect([...await getTestSourceChanges(ctx!, specifications)].map(([, change]) => change))
-    .toEqual([{ known: true, changed: true, testChanged: true, changedDependencies: 0 }])
+    .toEqual([{ known: true, changed: true, testChanged: true, changedDependencies: 0, failed: false }])
 })
 
 test('updates only completed projects when projects share the same test path', async () => {

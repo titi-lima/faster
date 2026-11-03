@@ -19,6 +19,7 @@ interface FasterSourceState {
   version: typeof STATE_VERSION
   tests: Record<string, Record<string, string>>
   functionTests?: Record<string, Record<string, FunctionSnapshot>>
+  failedTests?: Record<string, true>
 }
 
 type SourceSnapshot = Record<string, string>
@@ -29,6 +30,7 @@ export interface FasterSourceChange {
   changed: boolean
   testChanged: boolean
   changedDependencies: number
+  failed: boolean
 }
 
 export async function findTestsAffectedSinceLastRun(
@@ -70,6 +72,7 @@ export async function getTestSourceChanges(
       changed: changedPaths.includes(ownPath) || changedDependencies > 0,
       testChanged: changedPaths.includes(ownPath),
       changedDependencies,
+      failed: Boolean(state.failedTests?.[getTestKey(specification)]),
     })
   }))
   return changes
@@ -127,20 +130,29 @@ export async function saveTestRunSourceSnapshots(
   if (!stateFile || !snapshots.size) {
     return
   }
-  const executedFiles = new Set(files
+  const executedFiles = new Map(files
     .filter(file => file.result && ['pass', 'fail', 'skip'].includes(file.result.state))
-    .map(file => `${file.projectName || ''}:${file.pool || 'forks'}:${resolve(file.filepath)}`))
+    .map(file => [`${file.projectName || ''}:${file.pool || 'forks'}:${resolve(file.filepath)}`, file.result!.state === 'fail']))
   const state = await readState(stateFile)
   const sources = createSourceCache()
   let updated = false
   for (const [specification, snapshot] of snapshots) {
-    if (!executedFiles.has(`${specification.project.name}:${specification.pool}:${resolve(specification.moduleId)}`)) {
+    const failed = executedFiles.get(`${specification.project.name}:${specification.pool}:${resolve(specification.moduleId)}`)
+    if (failed === undefined) {
       continue
     }
-    state.tests[getTestKey(specification)] = snapshot
+    const key = getTestKey(specification)
+    state.failedTests ??= Object.create(null)
+    if (failed) {
+      state.failedTests![key] = true
+    }
+    else {
+      delete state.failedTests![key]
+    }
+    state.tests[key] = snapshot
     state.functionTests ??= Object.create(null)
     const current = await readSnapshot(specification, Object.keys(snapshot), sources)
-    state.functionTests![getTestKey(specification)] = sameSnapshot(snapshot, current)
+    state.functionTests![key] = sameSnapshot(snapshot, current)
       ? await collectFasterFunctionSnapshots(specification.project, specification.moduleId, snapshot)
       : {}
     updated = true
@@ -264,6 +276,14 @@ async function readState(file?: FasterStateFile): Promise<FasterSourceState> {
     for (const [key, snapshot] of Object.entries(parsed.tests)) {
       if (isRecord(snapshot) && Object.keys(snapshot).length && Object.values(snapshot).every(value => typeof value === 'string' && (value === MISSING_SOURCE || /^[a-f\d]{40}$/.test(value)))) {
         state.tests[key] = snapshot as SourceSnapshot
+      }
+    }
+    if (isRecord(parsed.failedTests)) {
+      state.failedTests = Object.create(null)
+      for (const [key, failed] of Object.entries(parsed.failedTests)) {
+        if (failed === true) {
+          state.failedTests![key] = true
+        }
       }
     }
     if (isRecord(parsed.functionTests)) {
