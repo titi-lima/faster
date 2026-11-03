@@ -24,8 +24,8 @@ const options = {
   maxWorkers: 1,
 }
 
-test('keeps history per Git worktree and starts a new worktree from the main worktree history', async () => {
-  const first = await runInlineTests(files, options)
+async function withCommittedRepository(structure: Record<string, string>, run: (main: string, worktree: string) => Promise<void>) {
+  const first = await runInlineTests(structure, options)
   await first.ctx!.close()
   const main = first.root
   const worktree = `${main}-worktree`
@@ -33,6 +33,15 @@ test('keeps history per Git worktree and starts a new worktree from the main wor
   git(main, 'add', '.')
   git(main, 'commit', '-qm', 'init')
   try {
+    await run(main, worktree)
+  }
+  finally {
+    rmSync(worktree, { recursive: true, force: true })
+  }
+}
+
+test('keeps history per Git worktree and starts a new worktree from the main worktree history', async () => {
+  await withCommittedRepository(files, async (main, worktree) => {
     const mainRun = await runVitest({ ...options, root: main })
     expect(mainRun.ctx!.state.getFiles()).toEqual([])
     expect(getFasterSourcesStateFile(mainRun.ctx!)!.path.startsWith(join(main, '.git/faster/'))).toBe(true)
@@ -64,24 +73,14 @@ test('keeps history per Git worktree and starts a new worktree from the main wor
 
     git(main, 'worktree', 'remove', '--force', worktree)
     expect(existsSync(worktreeState)).toBe(false)
-  }
-  finally {
-    rmSync(worktree, { recursive: true, force: true })
-  }
+  })
 })
 
 test('reruns files that failed in the main worktree when a new worktree starts from its history', async () => {
-  const first = await runInlineTests({
+  await withCommittedRepository({
     ...files,
     'broken.test.ts': `import { expect, test } from 'vitest'; test('broken', () => expect(1).toBe(2))`,
-  }, options)
-  await first.ctx!.close()
-  const main = first.root
-  const worktree = `${main}-worktree`
-  git(main, 'init', '-q')
-  git(main, 'add', '.')
-  git(main, 'commit', '-qm', 'init')
-  try {
+  }, async (main, worktree) => {
     const mainRun = await runVitest({ ...options, root: main })
     expect(mainRun.ctx!.state.getFiles().map(file => file.name)).toEqual(['broken.test.ts'])
     await mainRun.ctx!.close()
@@ -89,10 +88,7 @@ test('reruns files that failed in the main worktree when a new worktree starts f
     const seeded = await runVitest({ ...options, root: worktree })
     expect(seeded.ctx!.state.getFiles().map(file => file.name)).toEqual(['broken.test.ts'])
     await seeded.ctx!.close()
-  }
-  finally {
-    rmSync(worktree, { recursive: true, force: true })
-  }
+  })
 })
 
 test('keeps history in the Vitest cache directory outside the top of a Git worktree', () => {

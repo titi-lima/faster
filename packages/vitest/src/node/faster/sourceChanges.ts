@@ -19,7 +19,7 @@ interface FasterSourceState {
   version: typeof STATE_VERSION
   tests: Record<string, Record<string, string>>
   functionTests?: Record<string, Record<string, FunctionSnapshot>>
-  failedTests?: Record<string, true>
+  failedTests: Record<string, true>
 }
 
 type SourceSnapshot = Record<string, string>
@@ -53,17 +53,17 @@ export async function getTestSourceChanges(
     const current = previous
       ? await readSnapshot(specification, Object.keys(previous), sources)
       : undefined
-    return [specification, previous, current] as const
+    return [specification, key, previous, current] as const
   }))
 
   const changes = new Map<TestSpecification, FasterSourceChange>()
-  await Promise.all(comparisons.map(async ([specification, previous, current]) => {
+  await Promise.all(comparisons.map(async ([specification, key, previous, current]) => {
     const ownPath = slash(relative(specification.project.config.root, specification.moduleId))
     const changedPaths = previous && current
       ? Object.keys(previous).filter(path => previous[path] !== current[path])
       : []
     const changedDependencies = (await Promise.all(changedPaths.filter(path => path !== ownPath).map(async (path) => {
-      const snapshot = state.functionTests?.[getTestKey(specification)]?.[path]
+      const snapshot = state.functionTests?.[key]?.[path]
       return snapshot?.sourceHash !== previous?.[path]
         || await isFunctionDependencyAffected(specification.project, path, snapshot)
     }))).filter(Boolean).length
@@ -72,7 +72,7 @@ export async function getTestSourceChanges(
       changed: changedPaths.includes(ownPath) || changedDependencies > 0,
       testChanged: changedPaths.includes(ownPath),
       changedDependencies,
-      failed: Boolean(state.failedTests?.[getTestKey(specification)]),
+      failed: Boolean(state.failedTests[key]),
     })
   }))
   return changes
@@ -142,12 +142,11 @@ export async function saveTestRunSourceSnapshots(
       continue
     }
     const key = getTestKey(specification)
-    state.failedTests ??= Object.create(null)
     if (failed) {
-      state.failedTests![key] = true
+      state.failedTests[key] = true
     }
     else {
-      delete state.failedTests![key]
+      delete state.failedTests[key]
     }
     state.tests[key] = snapshot
     state.functionTests ??= Object.create(null)
@@ -165,7 +164,7 @@ export async function saveTestRunSourceSnapshots(
 export async function clearFasterSourceSnapshots(vitest: Vitest): Promise<void> {
   const stateFile = getFasterSourcesStateFile(vitest)
   if (stateFile) {
-    await clearFasterStateFile(stateFile, JSON.stringify({ version: STATE_VERSION, tests: {} }))
+    await clearFasterStateFile(stateFile)
   }
 }
 
@@ -260,7 +259,7 @@ export function getFasterSourcesStateFile(vitest: Vitest): FasterStateFile | und
 }
 
 async function readState(file?: FasterStateFile): Promise<FasterSourceState> {
-  const state: FasterSourceState = { version: STATE_VERSION, tests: Object.create(null) }
+  const state: FasterSourceState = { version: STATE_VERSION, tests: Object.create(null), failedTests: Object.create(null) }
   if (!file) {
     return state
   }
@@ -279,10 +278,9 @@ async function readState(file?: FasterStateFile): Promise<FasterSourceState> {
       }
     }
     if (isRecord(parsed.failedTests)) {
-      state.failedTests = Object.create(null)
       for (const [key, failed] of Object.entries(parsed.failedTests)) {
         if (failed === true) {
-          state.failedTests![key] = true
+          state.failedTests[key] = true
         }
       }
     }

@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { readFileSync, statSync } from 'node:fs'
-import { copyFile, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, resolve } from 'pathe'
 
 export interface FasterStateFile {
@@ -8,52 +8,30 @@ export interface FasterStateFile {
   seeds: string[]
 }
 
-interface GitDirs {
-  gitDir: string
-  commonDir: string
-}
-
-interface FasterStateLocation {
-  dir: string
-  seedDirs: string[]
-}
+const pendingSeeds = new Map<string, Promise<string | undefined>>()
 
 export function resolveFasterStateFile(root: string, cacheDir: string, name: string): FasterStateFile {
-  const location = resolveFasterStateLocation(root, cacheDir)
-  return {
-    path: join(location.dir, name),
-    seeds: location.seedDirs.map(dir => join(dir, name)),
-  }
-}
-
-function resolveFasterStateLocation(root: string, cacheDir: string): FasterStateLocation {
   const cacheInRoot = relative(root, cacheDir)
   const outsideRoot = cacheInRoot === '..' || cacheInRoot.startsWith('../') || isAbsolute(cacheInRoot)
-  const gitDirs = outsideRoot ? undefined : resolveGitDirs(root)
-  if (!gitDirs) {
-    return { dir: cacheDir, seedDirs: [] }
+  const gitDir = outsideRoot ? undefined : resolveGitDir(root)
+  const cachePath = join(cacheDir, name)
+  if (!gitDir) {
+    return { path: cachePath, seeds: [] }
   }
-  const dir = join(gitDirs.gitDir, 'faster', cacheInRoot)
-  const shared = join(gitDirs.commonDir, 'faster', cacheInRoot)
-  return { dir, seedDirs: shared === dir ? [cacheDir] : [cacheDir, shared] }
+  const path = join(gitDir, 'faster', cacheInRoot, name)
+  const shared = join(readCommonDir(gitDir), 'faster', cacheInRoot, name)
+  return { path, seeds: shared === path ? [cachePath] : [cachePath, shared] }
 }
 
-function resolveGitDirs(root: string): GitDirs | undefined {
+function resolveGitDir(root: string): string | undefined {
   const dotGit = join(root, '.git')
   try {
     if (statSync(dotGit).isDirectory()) {
-      return { gitDir: dotGit, commonDir: dotGit }
+      return dotGit
     }
     const gitFile = readFileSync(dotGit, 'utf8').trim()
-    const gitDir = gitFile.startsWith('gitdir:') ? gitFile.slice('gitdir:'.length).trim() : ''
-    if (!gitDir) {
-      return undefined
-    }
-    const absoluteGitDir = resolve(root, gitDir)
-    if (!statSync(absoluteGitDir, { throwIfNoEntry: false })?.isDirectory()) {
-      return undefined
-    }
-    return { gitDir: absoluteGitDir, commonDir: readCommonDir(absoluteGitDir) }
+    const gitDir = gitFile.startsWith('gitdir:') ? resolve(root, gitFile.slice('gitdir:'.length).trim()) : undefined
+    return gitDir && statSync(gitDir, { throwIfNoEntry: false })?.isDirectory() ? gitDir : undefined
   }
   catch {
     return undefined
@@ -74,32 +52,27 @@ export async function readFasterStateFile(file: FasterStateFile): Promise<string
     return await readFile(file.path, 'utf8')
   }
   catch (error: any) {
-    if (error?.code !== 'ENOENT') {
+    if (error?.code !== 'ENOENT' || !file.seeds.length) {
       return undefined
     }
   }
+  let seeding = pendingSeeds.get(file.path)
+  if (!seeding) {
+    seeding = seedFasterStateFile(file).finally(() => pendingSeeds.delete(file.path))
+    pendingSeeds.set(file.path, seeding)
+  }
+  return seeding
+}
+
+async function seedFasterStateFile(file: FasterStateFile): Promise<string | undefined> {
   for (const seed of file.seeds) {
-    if (await copyFasterStateFile(seed, file.path)) {
-      return readFile(file.path, 'utf8').catch(() => undefined)
+    const contents = await readFile(seed, 'utf8').catch(() => undefined)
+    if (contents) {
+      await writeFasterStateFile(file.path, contents).catch(() => {})
+      return contents
     }
   }
   return undefined
-}
-
-async function copyFasterStateFile(source: string, target: string): Promise<boolean> {
-  const temporaryPath = `${target}.${process.pid}.${randomUUID()}.tmp`
-  try {
-    await mkdir(dirname(target), { recursive: true })
-    await copyFile(source, temporaryPath)
-    await rename(temporaryPath, target)
-    return true
-  }
-  catch {
-    return false
-  }
-  finally {
-    await rm(temporaryPath, { force: true })
-  }
 }
 
 export async function writeFasterStateFile(path: string, contents: string): Promise<void> {
@@ -114,9 +87,9 @@ export async function writeFasterStateFile(path: string, contents: string): Prom
   }
 }
 
-export async function clearFasterStateFile(file: FasterStateFile, emptyContents: string): Promise<void> {
+export async function clearFasterStateFile(file: FasterStateFile): Promise<void> {
   if (file.seeds.length) {
-    await writeFasterStateFile(file.path, emptyContents)
+    await writeFasterStateFile(file.path, '')
   }
   else {
     await rm(file.path, { force: true })

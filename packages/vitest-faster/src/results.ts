@@ -74,7 +74,7 @@ export class FasterResults {
   async clear(): Promise<void> {
     this.results.clear()
     if (this.file) {
-      await clearFasterStateFile(this.file, JSON.stringify({ version: VERSION, results: [] }))
+      await clearFasterStateFile(this.file)
     }
   }
 }
