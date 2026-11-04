@@ -1,7 +1,8 @@
 import type { RunnerTestFile } from 'vitest/node'
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
-import { dirname, relative, resolve } from 'pathe'
+import { readFile, rm } from 'node:fs/promises'
+import { relative, resolve } from 'pathe'
+import { writeFasterStateFile } from './stateFile'
 
 export interface FileResult {
   failed: boolean
@@ -20,9 +21,9 @@ export class FasterResults {
   private path: string | undefined
   private root = '/'
 
-  configure(root: string, cacheDir: string | undefined): void {
+  configure(root: string, stateDir: string | undefined): void {
     this.root = root
-    this.path = cacheDir ? resolve(cacheDir, 'faster-results.json') : undefined
+    this.path = stateDir ? resolve(stateDir, 'faster-results.json') : undefined
   }
 
   get(key: string): FileResult | undefined {
@@ -68,8 +69,7 @@ export class FasterResults {
     if (!this.path) {
       return
     }
-    await mkdir(dirname(this.path), { recursive: true })
-    await writeFile(this.path, JSON.stringify({ version: VERSION, results: [...this.results] }))
+    await writeFasterStateFile(this.path, JSON.stringify({ version: VERSION, results: [...this.results] }))
   }
 
   async clear(): Promise<void> {

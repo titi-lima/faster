@@ -2,6 +2,7 @@ import type { Reporter, RunnerTestFile, TestProject, TestSpecification, Vitest }
 import type { FasterOptions, ResolvedFasterOptions } from './decision/priorityManifest'
 import type { FasterSourceSnapshots } from './decision/sourceChanges'
 import type { HostSequencerOptions } from './sequencer'
+import type { FasterStateDir } from './stateFile'
 import { readFileSync } from 'node:fs'
 import { stat } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
@@ -20,6 +21,7 @@ import {
 } from './decision/sourceChanges'
 import { FasterResults } from './results'
 import { createHostSequencer } from './sequencer'
+import { markFasterStateDirCleared, resolveFasterStateDir, seedFasterStateDir } from './stateFile'
 
 export const PLUGIN_NAME = 'vitest-faster'
 export const PRIORITIES_KEY = '__vitestFasterPriorities'
@@ -60,6 +62,9 @@ export class FasterHost {
   private stats = new Map<string, { size: number }>()
   private setUp = false
   private git: GitVCSProvider | undefined
+  private stateDir: FasterStateDir | undefined
+  private stateConfigBase: unknown
+  private stateConfig: unknown
   private servers = new WeakMap<object, any>()
   private transformResults = new WeakMap<object, { code: string; result: any }>()
   /**
@@ -93,9 +98,21 @@ export class FasterHost {
         },
       },
     }, {
-      config: { get: () => vitest.config },
+      config: { get: () => this.contextConfig() },
       _coverageOptions: { get: () => ({ provider: this.coverage?.provider ?? vitest.config.coverage.provider }) },
     })
+  }
+
+  private contextConfig(): any {
+    const config = this.vitest.config as any
+    if (!this.stateDir || config.cache === false) {
+      return config
+    }
+    if (this.stateConfigBase !== config) {
+      this.stateConfigBase = config
+      this.stateConfig = Object.create(config, { cache: { value: { ...config.cache, dir: this.stateDir.dir } } })
+    }
+    return this.stateConfig
   }
 
   faster(project: TestProject): ResolvedFasterOptions {
@@ -223,7 +240,12 @@ export class FasterHost {
       return
     }
 
-    this.results.configure(vitest.config.root, vitest.config.cache === false ? undefined : (vitest.config.cache as any).dir)
+    const cacheDir = vitest.config.cache === false ? undefined : (vitest.config.cache as any).dir
+    this.stateDir = cacheDir ? resolveFasterStateDir(vitest.config.root, cacheDir) : undefined
+    if (this.stateDir) {
+      await seedFasterStateDir(this.stateDir)
+    }
+    this.results.configure(vitest.config.root, this.stateDir?.dir)
     await this.results.read()
 
     this.configureCoverage()
@@ -367,6 +389,9 @@ export class FasterHost {
         await clear.apply(vitest, args)
         await this.results.clear()
         await clearFasterSourceSnapshots(this.context)
+        if (this.stateDir) {
+          await markFasterStateDirCleared(this.stateDir)
+        }
       }
     }
   }

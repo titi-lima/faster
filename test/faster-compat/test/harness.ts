@@ -163,15 +163,18 @@ export async function runScenario(host: HostName, scenario: Scenario): Promise<S
 }
 
 function readState(root: string): unknown {
-  const cache = join(root, 'node_modules/.vite/vitest')
-  if (!existsSync(cache)) {
+  const caches = [join(root, '.git/faster/node_modules/.vite/vitest'), join(root, 'node_modules/.vite/vitest')]
+    .filter(cache => existsSync(cache))
+  if (!caches.length) {
     return undefined
   }
   const state: Record<string, unknown> = {}
-  for (const dir of readdirSync(cache)) {
-    const file = join(cache, dir, 'faster-sources.json')
-    if (existsSync(file)) {
-      state[dir] = JSON.parse(readFileSync(file, 'utf8'))
+  for (const cache of caches) {
+    for (const dir of readdirSync(cache)) {
+      const file = join(cache, dir, 'faster-sources.json')
+      if (!(dir in state) && existsSync(file)) {
+        state[dir] = JSON.parse(readFileSync(file, 'utf8'))
+      }
     }
   }
   return state
