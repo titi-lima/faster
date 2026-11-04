@@ -13,7 +13,6 @@
     "lint": "eslint --cache .",
     "lint:fix": "pnpm run lint --fix",
     "typecheck": "tsc -p tsconfig.check.json --noEmit",
-    "check:decision-code": "node test/faster-compat/scripts/check-decision-code.mjs",
     "test": "pnpm -C test/faster-compat run test",
     "test:demo": "pnpm -C examples/faster-demo run test"
   },

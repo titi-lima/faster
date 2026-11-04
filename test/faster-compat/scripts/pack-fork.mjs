@@ -3,7 +3,6 @@ import { copyFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, renameSy
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { DEFAULT_FORK_REF } from './check-decision-code.mjs'
 
 /**
  * Builds the FASTER fork from a commit of this repository that still holds it
@@ -17,6 +16,9 @@ import { DEFAULT_FORK_REF } from './check-decision-code.mjs'
  * kept in `test/faster-compat/.fork/<commit>.tgz`, so each commit is built
  * once.
  */
+/** The commit that merged the plugin, the last one that holds the fork the FASTER evaluation ran. */
+export const DEFAULT_FORK_REF = '3e78239dc736f07be37256e1ac049a02c0870711'
+
 const compatRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const repository = resolve(compatRoot, '../..')
 const cache = join(compatRoot, '.fork')
