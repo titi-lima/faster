@@ -1,11 +1,10 @@
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { basename, join, resolve } from 'node:path'
+import { basename, join } from 'node:path'
 import { afterEach, expect, test } from 'vitest'
 import { markFasterStateDirCleared, resolveFasterStateDir, seedFasterStateDir } from '../../../packages/vitest-faster/src/stateFile'
-import { git, runVitest } from './repository'
+import { createRepository, git, runVitest } from './repository'
 
-const compat = resolve(import.meta.dirname, '..')
 const cleanup: string[] = []
 
 afterEach(() => {
@@ -14,17 +13,10 @@ afterEach(() => {
   }
 })
 
-function createRepository(parent: string, files: Record<string, string>) {
-  const main = mkdtempSync(join(parent, 'repository-'))
+function createWorktrees(files: Record<string, string>) {
+  const main = createRepository('repository-', files)
   const worktree = `${main}-worktree`
-  cleanup.push(main, worktree)
-  for (const [file, content] of Object.entries(files)) {
-    mkdirSync(join(main, file, '..'), { recursive: true })
-    writeFileSync(join(main, file), content)
-  }
-  git(main, 'init', '-q')
-  git(main, 'add', '.')
-  git(main, 'commit', '-qm', 'init')
+  cleanup.push(worktree)
   return { main, worktree }
 }
 
@@ -42,9 +34,7 @@ const project = {
 }
 
 test('a new worktree starts from the main worktree\'s history and keeps its own afterwards', async () => {
-  const fixtures = join(compat, 'fixtures')
-  mkdirSync(fixtures, { recursive: true })
-  const { main, worktree } = createRepository(fixtures, project)
+  const { main, worktree } = createWorktrees(project)
 
   expect(await runFaster(main)).toEqual(['broken.test.js', 'left.test.js', 'right.test.js'])
   expect(await runFaster(main)).toEqual(['broken.test.js'])
@@ -64,9 +54,7 @@ test('a new worktree starts from the main worktree\'s history and keeps its own 
 })
 
 test('deletes the uncompressed history of earlier versions in this worktree only', async () => {
-  const fixtures = join(compat, 'fixtures')
-  mkdirSync(fixtures, { recursive: true })
-  const { main, worktree } = createRepository(fixtures, project)
+  const { main, worktree } = createWorktrees(project)
   await runFaster(main)
   git(main, 'worktree', 'add', '-q', worktree)
   const [hash] = readdirSync(join(main, '.git/faster/node_modules/.vite/vitest'))

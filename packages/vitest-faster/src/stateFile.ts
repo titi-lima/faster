@@ -3,10 +3,9 @@ import { existsSync, readFileSync, statSync } from 'node:fs'
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, resolve } from 'pathe'
 
-export const FASTER_STATE_FILES = ['faster-sources.json.br', 'faster-results.json', 'faster-escapes.json']
-
-/** Source history of earlier versions, uncompressed and up to 90 MB; nothing reads it any more. */
-const LEGACY_FASTER_STATE_FILES = ['faster-sources.json']
+/** Each test file's sources and the functions it called, written by `decision/sourceChanges.ts`. */
+export const FASTER_SOURCES_FILE = 'faster-sources.json.br'
+export const FASTER_STATE_FILES = [FASTER_SOURCES_FILE, 'faster-results.json', 'faster-escapes.json']
 
 export interface FasterStateDir {
   dir: string
@@ -64,11 +63,9 @@ export async function seedFasterStateDir({ dir, seedDirs }: FasterStateDir): Pro
   }))
 }
 
-/** Deletes the history earlier versions kept where this one keeps its own or seeds it from. */
-export async function removeLegacyFasterState({ dir, seedDirs }: FasterStateDir): Promise<void> {
-  // The first seed directory is the cache directory inside this worktree; later ones belong to other worktrees.
-  const own = [dir, ...seedDirs.slice(0, 1)]
-  await Promise.all(own.flatMap(directory => LEGACY_FASTER_STATE_FILES.map(name => rm(join(directory, name), { force: true }))))
+/** Deletes the uncompressed source history of earlier versions, up to 90 MB, which nothing reads any more. */
+export async function removeLegacyFasterState(directories: string[]): Promise<void> {
+  await Promise.all(directories.map(directory => rm(join(directory, 'faster-sources.json'), { force: true })))
 }
 
 export async function markFasterStateDirCleared({ dir, seedDirs }: FasterStateDir): Promise<void> {

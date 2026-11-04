@@ -3,19 +3,19 @@ import type { Vitest } from '../shims/vitest'
 import type { TestSpecification } from '../shims/vitest'
 import type { TestImportCache } from './affectedTests'
 import type { FunctionSnapshot, StoredFunctionModel } from './functionCoverage'
-import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
-import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
+import { readFile, rm, stat } from 'node:fs/promises'
 import { slash } from '../shims/helpers'
 import { promisify } from 'node:util'
 import { brotliCompress, brotliDecompress, constants as zlib } from 'node:zlib'
-import { dirname, relative, resolve } from 'pathe'
+import { relative, resolve } from 'pathe'
+import { FASTER_SOURCES_FILE, writeFasterStateFile } from '../stateFile'
 import { hash } from './hash'
 import { getTestDependencies } from './affectedTests'
-import { collectFasterFunctionSnapshots, FUNCTION_HASH_LENGTH, isFunctionDependencyAffected, resetFasterFunctionCoverage } from './functionCoverage'
+import { collectFasterFunctionSnapshots, isFunctionDependencyAffected, resetFasterFunctionCoverage } from './functionCoverage'
+import { getOrCreate } from './getOrCreate'
 
 const STATE_VERSION = 2
-const STATE_FILE = 'faster-sources.json.br'
 const MISSING_SOURCE = '<missing>'
 const compress = promisify(brotliCompress)
 const decompress = promisify(brotliDecompress)
@@ -29,9 +29,17 @@ interface TestSources {
   functions: Record<string, FunctionSnapshot>
 }
 
+/** Test files by project name, then by `<pool>:<path from the project root>`. */
 interface FasterSourceState {
-  tests: Record<string, TestSources>
+  tests: Map<string, Map<string, TestSources>>
 }
+
+/**
+ * Selection, ordering and the pre-run snapshot only read the state, and they
+ * read it within moments of each other; they share one decoded copy for as
+ * long as the file stays the same. Saving reads its own copy, which it changes.
+ */
+const sharedStates = new Map<string, { version: string; state: Promise<FasterSourceState> }>()
 
 /**
  * The state on disk. Test files load mostly the same modules, so every source
@@ -39,18 +47,18 @@ interface FasterSourceState {
  * index:
  *
  * - `files`: `[path, hash]` per source version.
- * - `models`: `[environment, shape, ids, hashes]` per function model, with
- *   the ids front-coded (see `encodeIds`) and the hashes concatenated.
+ * - `models`: `[environment, shape, ids, hashes]` per function model (see
+ *   `StoredFunctionModel`).
  * - `snapshots`: `[model, called]` per function snapshot.
- * - `tests`: per test file, the indexes of its source versions and, when it
- *   recorded functions, the index of the snapshot of each source (-1 for none).
+ * - `tests`: per project and test file, the indexes of its source versions
+ *   and of the snapshot of each source, -1 for none.
  */
 interface StoredSourceState {
   version: typeof STATE_VERSION
   files: [string, string][]
   models: [string, string, string, string][]
   snapshots: [number, string][]
-  tests: Record<string, [number[]] | [number[], number[]]>
+  tests: Record<string, Record<string, [number[], number[]]>>
 }
 
 export interface FasterSourceChange {
@@ -72,11 +80,10 @@ export async function getTestSourceChanges(
   vitest: Vitest,
   specifications: TestSpecification[],
 ): Promise<Map<TestSpecification, FasterSourceChange>> {
-  const state = await readState(getStatePath(vitest))
+  const state = await readSharedState(getStatePath(vitest))
   const sources = createSourceCache()
   const comparisons = await Promise.all(specifications.map(async (specification) => {
-    const key = getTestKey(specification)
-    const previous = state.tests[key]?.sources
+    const previous = getTest(state, specification)?.sources
     const current = previous
       ? await readSnapshot(specification, Object.keys(previous), sources)
       : undefined
@@ -89,7 +96,7 @@ export async function getTestSourceChanges(
     const changedPaths = previous && current
       ? Object.keys(previous).filter(path => previous[path] !== current[path])
       : []
-    const functions = state.tests[getTestKey(specification)]?.functions
+    const functions = getTest(state, specification)?.functions
     const changedDependencies = (await Promise.all(changedPaths.filter(path => path !== ownPath).map(path =>
       isFunctionDependencyAffected(specification.project, path, functions?.[path]),
     ))).filter(Boolean).length
@@ -138,11 +145,11 @@ async function createTestRunSourceSnapshots(
   if (vitest.config.cache === false || !eligible.length) {
     return new Map()
   }
-  const state = await readState(getStatePath(vitest))
+  const state = await readSharedState(getStatePath(vitest))
   const sources = createSourceCache()
   return new Map(await Promise.all(eligible.map(async specification => [
     specification,
-    await createSnapshot(specification, state.tests[getTestKey(specification)]?.sources, sources),
+    await createSnapshot(specification, getTest(state, specification)?.sources, sources),
   ] as const)))
 }
 
@@ -166,12 +173,13 @@ export async function saveTestRunSourceSnapshots(
       continue
     }
     const current = await readSnapshot(specification, Object.keys(snapshot), sources)
-    state.tests[getTestKey(specification)] = {
+    const [project, file] = getTestKey(specification)
+    getOrCreate(state.tests, project, () => new Map()).set(file, {
       sources: snapshot,
       functions: sameSnapshot(snapshot, current)
         ? await collectFasterFunctionSnapshots(specification.project, specification.moduleId, snapshot)
         : Object.create(null),
-    }
+    })
     updated = true
   }
   if (updated) {
@@ -185,20 +193,13 @@ export async function saveTestRunSourceSnapshots(
  * this run, so renamed and deleted tests do not keep their sources forever.
  */
 function forgetDeletedTests(state: FasterSourceState, specifications: Iterable<TestSpecification>): void {
-  const projects = new Map<string, string>()
-  for (const specification of specifications) {
-    projects.set(`${specification.project.name}:`, specification.project.config.root)
-  }
-  // A project named `a` must not claim the keys of a project named `a:b`.
-  const roots = [...projects].sort(([left], [right]) => right.length - left.length)
-  for (const key of Object.keys(state.tests)) {
-    for (const [prefix, root] of roots) {
-      // Keys are `<project>:<pool>:<path>`; pool names hold no colon.
-      const rest = key.startsWith(prefix) ? key.slice(prefix.length) : ''
-      const separator = rest.indexOf(':')
-      if (separator > 0 && !existsSync(resolve(root, rest.slice(separator + 1)))) {
-        delete state.tests[key]
-        break
+  const roots = new Map(Array.from(specifications, specification => [specification.project.name, specification.project.config.root]))
+  for (const [project, root] of roots) {
+    const tests = state.tests.get(project)
+    for (const file of tests?.keys() ?? []) {
+      // Pool names hold no colon.
+      if (!existsSync(resolve(root, file.slice(file.indexOf(':') + 1)))) {
+        tests!.delete(file)
       }
     }
   }
@@ -207,6 +208,7 @@ function forgetDeletedTests(state: FasterSourceState, specifications: Iterable<T
 export async function clearFasterSourceSnapshots(vitest: Vitest): Promise<void> {
   const statePath = getStatePath(vitest)
   if (statePath) {
+    sharedStates.delete(statePath)
     await rm(statePath, { force: true })
   }
 }
@@ -246,27 +248,9 @@ async function createSnapshot(
   dependencies.add(specification.moduleId)
 
   const root = specification.project.config.root
-  const relativePaths = memoizeByRoot(sources.relativePaths, root)
-  const paths = Array.from(dependencies, filepath => memoize(relativePaths, filepath, () => slash(relative(root, filepath))))
+  const relativePaths = getOrCreate(sources.relativePaths, root, () => new Map())
+  const paths = Array.from(dependencies, filepath => getOrCreate(relativePaths, filepath, () => slash(relative(root, filepath))))
   return readSnapshot(specification, paths, sources)
-}
-
-function memoizeByRoot(cache: Map<string, Map<string, string>>, root: string): Map<string, string> {
-  let paths = cache.get(root)
-  if (!paths) {
-    paths = new Map()
-    cache.set(root, paths)
-  }
-  return paths
-}
-
-function memoize(cache: Map<string, string>, key: string, compute: () => string): string {
-  let value = cache.get(key)
-  if (value === undefined) {
-    value = compute()
-    cache.set(key, value)
-  }
-  return value
 }
 
 /**
@@ -280,8 +264,8 @@ async function readSnapshot(
   sources: SourceCache,
 ): Promise<SourceSnapshot> {
   const root = specification.project.config.root
-  const absolutePaths = memoizeByRoot(sources.absolutePaths, root)
-  const filepaths = paths.map(relativePath => memoize(absolutePaths, relativePath, () => resolve(root, relativePath)))
+  const absolutePaths = getOrCreate(sources.absolutePaths, root, () => new Map())
+  const filepaths = paths.map(relativePath => getOrCreate(absolutePaths, relativePath, () => resolve(root, relativePath)))
   const reads: Promise<void>[] = []
   for (const filepath of filepaths) {
     if (!sources.hashes.has(filepath)) {
@@ -313,213 +297,118 @@ function sameSnapshot(previous: SourceSnapshot, current: SourceSnapshot): boolea
     && previousPaths.every(path => Object.hasOwn(current, path) && previous[path] === current[path])
 }
 
-function getTestKey(specification: TestSpecification): string {
+/** The project of a test file and its key within the project. */
+function getTestKey(specification: TestSpecification): [string, string] {
   const filepath = slash(relative(specification.project.config.root, specification.moduleId))
-  return `${specification.project.name}:${specification.pool}:${filepath}`
+  return [specification.project.name, `${specification.pool}:${filepath}`]
+}
+
+function getTest(state: FasterSourceState, specification: TestSpecification): TestSources | undefined {
+  const [project, file] = getTestKey(specification)
+  return state.tests.get(project)?.get(file)
 }
 
 function getStatePath(vitest: Vitest): string | undefined {
-  return vitest.config.cache === false ? undefined : resolve(vitest.config.cache.dir, STATE_FILE)
+  return vitest.config.cache === false ? undefined : resolve(vitest.config.cache.dir, FASTER_SOURCES_FILE)
+}
+
+async function readSharedState(filepath?: string): Promise<FasterSourceState> {
+  if (!filepath) {
+    return emptyState()
+  }
+  const stats = await stat(filepath).catch(() => undefined)
+  const version = stats ? `${stats.ino}:${stats.size}:${stats.mtimeMs}` : ''
+  let shared = sharedStates.get(filepath)
+  if (shared?.version !== version) {
+    shared = { version, state: readState(filepath) }
+    sharedStates.set(filepath, shared)
+  }
+  return shared.state
 }
 
 async function readState(filepath?: string): Promise<FasterSourceState> {
-  const empty: FasterSourceState = { tests: Object.create(null) }
-  if (!filepath) {
-    return empty
-  }
   try {
-    return decodeState(JSON.parse((await decompress(await readFile(filepath))).toString('utf8'))) ?? empty
+    return filepath ? decodeState(JSON.parse((await decompress(await readFile(filepath))).toString('utf8'))) : emptyState()
   }
   catch {
-    return empty
+    return emptyState()
   }
 }
 
-const HASH = /^[a-f\d]{40}$/
-const FUNCTION_HASH = new RegExp(`^[\\w-]{${FUNCTION_HASH_LENGTH}}$`)
-const FUNCTION_HASHES = /^[\w-]*$/
-const CALLS = /^[01-]*$/
+function emptyState(): FasterSourceState {
+  return { tests: new Map() }
+}
 
-/** The stored `[ids, hashes]` of each model read from disk, written back as they are. */
-const encodedModels = new WeakMap<StoredFunctionModel, [string, string]>()
-
-/** Reads the stored state; anything malformed discards the whole history, as a version change does. */
-function decodeState(stored: any): FasterSourceState | undefined {
-  if (stored?.version !== STATE_VERSION || ![stored.files, stored.models, stored.snapshots].every(Array.isArray) || !isRecord(stored.tests)) {
-    return undefined
+/**
+ * Indexes that point nowhere throw, which discards the whole history as a
+ * version change does. Other damage only makes FASTER run more: a hash that
+ * matches no source, or a model that cannot be decoded, counts as a change.
+ */
+function decodeState(stored: StoredSourceState): FasterSourceState {
+  if (stored?.version !== STATE_VERSION) {
+    return emptyState()
   }
-  const files: [string, string][] = stored.files
-  if (!files.every(file => Array.isArray(file) && typeof file[0] === 'string' && typeof file[1] === 'string' && (file[1] === MISSING_SOURCE || HASH.test(file[1])))) {
-    return undefined
-  }
-  const models: StoredFunctionModel[] = []
-  for (const entry of stored.models) {
-    const model = Array.isArray(entry) && entry.every(value => typeof value === 'string') ? decodeModel(entry as [string, string, string, string]) : undefined
-    if (!model) {
-      return undefined
-    }
-    models.push(model)
-  }
-  const snapshots: FunctionSnapshot[] = []
-  for (const entry of stored.snapshots) {
-    const model = Array.isArray(entry) ? models[entry[0]] : undefined
-    if (!model || typeof entry[1] !== 'string' || entry[1].length * FUNCTION_HASH_LENGTH !== encodedModels.get(model)![1].length || !CALLS.test(entry[1])) {
-      return undefined
-    }
-    snapshots.push({ model, called: entry[1] })
-  }
-  const state: FasterSourceState = { tests: Object.create(null) }
-  for (const [key, entry] of Object.entries(stored.tests)) {
-    const [fileIndexes, snapshotIndexes] = Array.isArray(entry) ? entry : []
-    if (!Array.isArray(fileIndexes) || !fileIndexes.length || (snapshotIndexes !== undefined && (!Array.isArray(snapshotIndexes) || snapshotIndexes.length !== fileIndexes.length))) {
-      return undefined
-    }
-    const test: TestSources = { sources: Object.create(null), functions: Object.create(null) }
-    for (let position = 0; position < fileIndexes.length; position++) {
-      const file = files[fileIndexes[position]]
-      if (!file) {
-        return undefined
-      }
-      test.sources[file[0]] = file[1]
-      const snapshotIndex = snapshotIndexes?.[position] ?? -1
-      if (snapshotIndex !== -1) {
-        const snapshot = snapshots[snapshotIndex]
-        if (!snapshot) {
-          return undefined
+  const models = stored.models.map(([environment, shape, ids, hashes]): StoredFunctionModel => ({ environment, shape, ids, hashes }))
+  const snapshots = stored.snapshots.map(([model, called]): FunctionSnapshot => ({ model: models[model], called }))
+  const state = emptyState()
+  for (const [project, files] of Object.entries(stored.tests)) {
+    const tests = new Map<string, TestSources>()
+    for (const [file, [fileIndexes, snapshotIndexes]] of Object.entries(files)) {
+      const test: TestSources = { sources: Object.create(null), functions: Object.create(null) }
+      fileIndexes.forEach((fileIndex, position) => {
+        const [path, sourceHash] = stored.files[fileIndex]
+        test.sources[path] = sourceHash
+        const snapshot = snapshots[snapshotIndexes[position]]
+        if (snapshot) {
+          test.functions[path] = snapshot
         }
-        test.functions[file[0]] = snapshot
+      })
+      if (fileIndexes.length) {
+        tests.set(file, test)
       }
     }
-    state.tests[key] = test
+    state.tests.set(project, tests)
   }
   return state
 }
 
-/**
- * Most models are never compared, since few sources change between runs, so
- * their ids and hashes are decoded on first use. A model whose ids do not
- * decode throws there, which counts its source as affected.
- */
-function decodeModel([environment, shape, ids, hashes]: [string, string, string, string]): StoredFunctionModel | undefined {
-  if (!FUNCTION_HASH.test(shape) || hashes.length % FUNCTION_HASH_LENGTH || !FUNCTION_HASHES.test(hashes)) {
-    return undefined
-  }
-  let decoded: { ids: string[]; hashes: string[] } | undefined
-  const decode = () => {
-    if (!decoded) {
-      const count = hashes.length / FUNCTION_HASH_LENGTH
-      const decodedIds = decodeIds(ids)
-      if (decodedIds?.length !== count) {
-        throw new Error('Malformed function model')
-      }
-      decoded = { ids: decodedIds, hashes: Array.from({ length: count }, (_, index) => hashes.slice(index * FUNCTION_HASH_LENGTH, (index + 1) * FUNCTION_HASH_LENGTH)) }
-    }
-    return decoded
-  }
-  const model: StoredFunctionModel = {
-    environment,
-    shape,
-    get ids() {
-      return decode().ids
-    },
-    get hashes() {
-      return decode().hashes
-    },
-  }
-  encodedModels.set(model, [ids, hashes])
-  return model
-}
-
 function encodeState(state: FasterSourceState): StoredSourceState {
-  const stored: StoredSourceState = { version: STATE_VERSION, files: [], models: [], snapshots: [], tests: Object.create(null) }
-  const files = new Map<string, number>()
+  const stored: StoredSourceState = { version: STATE_VERSION, files: [], models: [], snapshots: [], tests: {} }
+  const files = new Map<string, Map<string, number>>()
+  // Models and snapshots are shared objects, so each is looked up by identity before its content.
   const models = new Map<StoredFunctionModel, number>()
   const modelsByContent = new Map<string, number>()
   const snapshots = new Map<FunctionSnapshot, number>()
   const snapshotsByContent = new Map<string, number>()
-  const intern = <T>(map: Map<T, number>, key: T, add: () => number): number => {
-    let index = map.get(key)
-    if (index === undefined) {
-      index = add()
-      map.set(key, index)
-    }
-    return index
-  }
-  const modelIndex = (model: StoredFunctionModel) => intern(models, model, () => {
-    const [ids, hashes] = encodedModels.get(model) ?? [encodeIds(model.ids), model.hashes.join('')]
-    return intern(modelsByContent, `${model.environment}\n${model.shape}\n${ids}\n${hashes}`, () => stored.models.push([model.environment, model.shape, ids, hashes]) - 1)
+  const modelIndex = ({ environment, shape, ids, hashes }: StoredFunctionModel) =>
+    getOrCreate(modelsByContent, `${environment}\n${shape}\n${ids}\n${hashes}`, () => stored.models.push([environment, shape, ids, hashes]) - 1)
+  const snapshotIndex = (snapshot: FunctionSnapshot) => getOrCreate(snapshots, snapshot, () => {
+    const model = getOrCreate(models, snapshot.model, () => modelIndex(snapshot.model))
+    return getOrCreate(snapshotsByContent, `${model}:${snapshot.called}`, () => stored.snapshots.push([model, snapshot.called]) - 1)
   })
-  const snapshotIndex = (snapshot: FunctionSnapshot) => intern(snapshots, snapshot, () => {
-    const model = modelIndex(snapshot.model)
-    return intern(snapshotsByContent, `${model}:${snapshot.called}`, () => stored.snapshots.push([model, snapshot.called]) - 1)
-  })
-  for (const [key, test] of Object.entries(state.tests)) {
-    const fileIndexes: number[] = []
-    const snapshotIndexes: number[] = []
-    let functions = false
-    for (const [path, sourceHash] of Object.entries(test.sources)) {
-      fileIndexes.push(intern(files, `${sourceHash}\n${path}`, () => stored.files.push([path, sourceHash]) - 1))
-      const snapshot = test.functions[path]
-      snapshotIndexes.push(snapshot ? snapshotIndex(snapshot) : -1)
-      functions ||= Boolean(snapshot)
+  for (const [project, tests] of state.tests) {
+    if (!tests.size) {
+      continue
     }
-    stored.tests[key] = functions ? [fileIndexes, snapshotIndexes] : [fileIndexes]
+    const entries: Record<string, [number[], number[]]> = stored.tests[project] = {}
+    for (const [file, test] of tests) {
+      const fileIndexes: number[] = []
+      const snapshotIndexes: number[] = []
+      for (const [path, sourceHash] of Object.entries(test.sources)) {
+        fileIndexes.push(getOrCreate(getOrCreate(files, path, () => new Map()), sourceHash, () => stored.files.push([path, sourceHash]) - 1))
+        const snapshot = test.functions[path]
+        snapshotIndexes.push(snapshot ? snapshotIndex(snapshot) : -1)
+      }
+      entries[file] = [fileIndexes, snapshotIndexes]
+    }
   }
   return stored
 }
 
-/**
- * Function ids are paths in the syntax tree listed in visiting order, so each
- * shares a long prefix with the one before. Each id is stored as the length
- * of that prefix in base 36, a colon and the rest, separated by spaces; ids
- * hold neither character.
- */
-function encodeIds(ids: readonly string[]): string {
-  let previous = ''
-  return ids.map((id) => {
-    let shared = 0
-    const limit = Math.min(id.length, previous.length)
-    while (shared < limit && id.charCodeAt(shared) === previous.charCodeAt(shared)) {
-      shared++
-    }
-    previous = id
-    return `${shared.toString(36)}:${id.slice(shared)}`
-  }).join(' ')
-}
-
-function decodeIds(encoded: string): string[] | undefined {
-  if (!encoded) {
-    return []
-  }
-  let previous = ''
-  const ids: string[] = []
-  for (const entry of encoded.split(' ')) {
-    const separator = entry.indexOf(':')
-    const shared = Number.parseInt(entry.slice(0, separator), 36)
-    if (separator < 1 || !(shared <= previous.length)) {
-      return undefined
-    }
-    previous = previous.slice(0, shared) + entry.slice(separator + 1)
-    ids.push(previous)
-  }
-  return ids
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
-}
-
 async function writeState(filepath: string, state: FasterSourceState): Promise<void> {
-  await mkdir(dirname(filepath), { recursive: true })
-  const temporaryPath = `${filepath}.${process.pid}.${randomUUID()}.tmp`
-  try {
-    const contents = Buffer.from(JSON.stringify(encodeState(state)))
-    await writeFile(temporaryPath, await compress(contents, {
-      params: { [zlib.BROTLI_PARAM_QUALITY]: 3, [zlib.BROTLI_PARAM_SIZE_HINT]: contents.length },
-    }))
-    await rename(temporaryPath, filepath)
-  }
-  finally {
-    await rm(temporaryPath, { force: true })
-  }
+  sharedStates.delete(filepath)
+  const contents = Buffer.from(JSON.stringify(encodeState(state)))
+  await writeFasterStateFile(filepath, await compress(contents, {
+    params: { [zlib.BROTLI_PARAM_QUALITY]: 3, [zlib.BROTLI_PARAM_SIZE_HINT]: contents.length },
+  }))
 }

@@ -253,7 +253,8 @@ export class FasterHost {
     const cacheDir = vitest.config.cache === false ? undefined : (vitest.config.cache as any).dir
     this.stateDir = cacheDir ? resolveFasterStateDir(vitest.config.root, cacheDir) : undefined
     if (this.stateDir) {
-      await Promise.all([seedFasterStateDir(this.stateDir), removeLegacyFasterState(this.stateDir)])
+      // Only this worktree's own directories: the main worktree's history is the main worktree's to clean.
+      await Promise.all([seedFasterStateDir(this.stateDir), removeLegacyFasterState([this.stateDir.dir, cacheDir])])
     }
     this.results.configure(vitest.config.root, this.stateDir?.dir)
     this.escapes.configure(vitest.config.root, this.stateDir?.dir)

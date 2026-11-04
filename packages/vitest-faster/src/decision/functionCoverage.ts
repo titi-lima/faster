@@ -5,6 +5,7 @@ import type { TestProject } from '../shims/vitest'
 import { fileURLToPath } from 'node:url'
 import { relative, resolve } from 'pathe'
 import { parseAstAsync } from 'vite'
+import { getOrCreate } from './getOrCreate'
 import { hash } from './hash'
 
 interface Node {
@@ -28,16 +29,17 @@ interface ScriptCoverage extends Profiler.ScriptCoverage {
 }
 
 /**
- * A module's functions as one environment transformed it: the hash of its
- * code outside function bodies (`shape`) and, for each function in source
- * order, its position in the syntax tree and the hash of its body outside
- * nested functions.
+ * A module's functions as one environment transformed it, in the form it is
+ * stored: the hash of its code outside function bodies (`shape`) and, for
+ * each function in source order, its position in the syntax tree (`ids`,
+ * front-coded, see `encodeIds`) and the hash of its body outside nested
+ * functions (`hashes`, concatenated).
  */
 export interface StoredFunctionModel {
   environment: string
   shape: string
-  ids: readonly string[]
-  hashes: readonly string[]
+  ids: string
+  hashes: string
 }
 
 /** What one test file's last run observed of a module it loaded. */
@@ -50,9 +52,9 @@ export interface FunctionSnapshot {
 /** Characters of a function or shape hash: a 96-bit SHA-1 prefix in base64url. */
 export const FUNCTION_HASH_LENGTH = 16
 
-export const CALLED = '1'
-export const NOT_CALLED = '0'
-export const CALL_UNKNOWN = '-'
+const CALLED = '1'
+const NOT_CALLED = '0'
+const CALL_UNKNOWN = '-'
 
 /**
  * The first range of every function V8 reported for one script, as
@@ -76,9 +78,11 @@ interface FunctionModel {
 
 const coverageByRun = new WeakMap<Vitest, Map<string, TestCoverage[]>>()
 const modelCache = new WeakMap<TestProject, Map<string, Promise<FunctionModel>>>()
-const storedModels = new WeakMap<FunctionModel, Map<string, StoredFunctionModel>>()
+const storedModels = new WeakMap<FunctionModel, StoredFunctionModel>()
 const codeHashes = new WeakMap<object, { code: string; hash: string }>()
 const modelIndexes = new WeakMap<StoredFunctionModel, Map<string, number>>()
+/** Per project root, the path of each script URL V8 reports, relative to the root. */
+const scriptPaths = new Map<string, Map<string, string>>()
 
 export function resetFasterFunctionCoverage(vitest: Vitest): void {
   coverageByRun.set(vitest, new Map())
@@ -103,6 +107,7 @@ export function recordFasterFunctionCoverage(project: TestProject, meta: AfterSu
 }
 
 function reduceScripts(root: string, scripts: ScriptCoverage[]): ScriptRanges[] {
+  const paths = getOrCreate(scriptPaths, root, () => new Map())
   const reduced: ScriptRanges[] = []
   for (const script of scripts) {
     if (!script.url.startsWith('file:')) {
@@ -121,7 +126,10 @@ function reduceScripts(root: string, scripts: ScriptCoverage[]): ScriptRanges[] 
         ranges[length++] = range.count > 0 ? 1 : 0
       }
     }
-    reduced.push({ path: relative(root, fileURLToPath(script.url)), ranges: ranges.slice(0, length) })
+    reduced.push({
+      path: getOrCreate(paths, script.url, () => relative(root, fileURLToPath(script.url))),
+      ranges: length === ranges.length ? ranges : ranges.slice(0, length),
+    })
   }
   return reduced
 }
@@ -211,7 +219,12 @@ export async function collectFasterFunctionSnapshots(
         return
       }
       snapshots[path] = {
-        model: storeFunctionModel(model, capture.environment),
+        model: getOrCreate(storedModels, model, () => ({
+          environment: capture.environment,
+          shape: model.shape,
+          ids: encodeIds(model.functions.map(fn => fn.id)),
+          hashes: model.functions.map(fn => fn.hash).join(''),
+        })),
         called: observeCalls(model, capture.values),
       }
     }
@@ -258,17 +271,18 @@ export async function isFunctionDependencyAffected(
   try {
     const stored = previous.model
     const current = await transformFunctionModel(project, path, stored.environment)
-    if (!current || current.shape !== stored.shape || current.functions.length !== stored.ids.length) {
+    const count = stored.hashes.length / FUNCTION_HASH_LENGTH
+    if (!current || current.shape !== stored.shape || current.functions.length !== count) {
       return true
     }
-    const index = indexModel(stored)
+    const index = indexModel(stored, count)
     let changed = false
     for (const fn of current.functions) {
       const position = index.get(fn.id)
       if (position === undefined) {
         return true
       }
-      if (fn.hash !== stored.hashes[position]) {
+      if (!stored.hashes.startsWith(fn.hash, position * FUNCTION_HASH_LENGTH)) {
         changed = true
         if (previous.called[position] !== NOT_CALLED) {
           return true
@@ -282,32 +296,49 @@ export async function isFunctionDependencyAffected(
   }
 }
 
-function indexModel(model: StoredFunctionModel): Map<string, number> {
-  let index = modelIndexes.get(model)
-  if (!index) {
-    index = new Map(model.ids.map((id, position) => [id, position]))
-    modelIndexes.set(model, index)
-  }
-  return index
+/** Position of each function id in a stored model; empty when the ids are malformed, which makes every source affected. */
+function indexModel(model: StoredFunctionModel, count: number): Map<string, number> {
+  return getOrCreate(modelIndexes, model, () => {
+    const ids = decodeIds(model.ids)
+    return new Map(ids?.length === count ? ids.map((id, position) => [id, position]) : [])
+  })
 }
 
-function storeFunctionModel(model: FunctionModel, environment: string): StoredFunctionModel {
-  let byEnvironment = storedModels.get(model)
-  if (!byEnvironment) {
-    byEnvironment = new Map()
-    storedModels.set(model, byEnvironment)
-  }
-  let stored = byEnvironment.get(environment)
-  if (!stored) {
-    stored = {
-      environment,
-      shape: model.shape,
-      ids: model.functions.map(fn => fn.id),
-      hashes: model.functions.map(fn => fn.hash),
+/**
+ * Function ids are paths in the syntax tree listed in visiting order, so each
+ * shares a long prefix with the one before. Each id is stored as the length
+ * of that prefix in base 36, a colon and the rest, separated by spaces; ids
+ * hold neither character.
+ */
+function encodeIds(ids: string[]): string {
+  let previous = ''
+  return ids.map((id) => {
+    let shared = 0
+    const limit = Math.min(id.length, previous.length)
+    while (shared < limit && id.charCodeAt(shared) === previous.charCodeAt(shared)) {
+      shared++
     }
-    byEnvironment.set(environment, stored)
+    previous = id
+    return `${shared.toString(36)}:${id.slice(shared)}`
+  }).join(' ')
+}
+
+function decodeIds(encoded: string): string[] | undefined {
+  if (!encoded) {
+    return []
   }
-  return stored
+  let previous = ''
+  const ids: string[] = []
+  for (const entry of encoded.split(' ')) {
+    const separator = entry.indexOf(':')
+    const shared = Number.parseInt(entry.slice(0, separator), 36)
+    if (separator < 1 || !(shared <= previous.length)) {
+      return undefined
+    }
+    previous = previous.slice(0, shared) + entry.slice(separator + 1)
+    ids.push(previous)
+  }
+  return ids
 }
 
 /**
@@ -327,25 +358,17 @@ function indexFunctionRanges(values: Int32Array[]) {
   return ranges
 }
 
-async function transformFunctionModel(project: TestProject, path: string, environment: string) {
+async function transformFunctionModel(project: TestProject, path: string, environment: string): Promise<FunctionModel | undefined> {
   const result = await project.vite.environments[environment]?.transformRequest(resolve(project.config.root, path))
   if (!result) {
     return undefined
   }
-  let cache = modelCache.get(project)
-  if (!cache) {
-    cache = new Map()
-    modelCache.set(project, cache)
-  }
+  const cache = getOrCreate(modelCache, project, () => new Map<string, Promise<FunctionModel>>())
   // Fetching a module rewrites its transform result code in place, so the code is part of the memo.
   let digest = codeHashes.get(result)
   if (digest?.code !== result.code) {
     digest = { code: result.code, hash: hash('sha1', result.code, 'hex') }
     codeHashes.set(result, digest)
   }
-  const key = `${environment}:${path}:${digest.hash}`
-  if (!cache.has(key)) {
-    cache.set(key, createFunctionModel(result.code))
-  }
-  return cache.get(key)
+  return getOrCreate(cache, `${environment}:${path}:${digest.hash}`, () => createFunctionModel(result.code))
 }

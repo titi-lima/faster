@@ -163,7 +163,7 @@ export async function runScenario(host: HostName, scenario: Scenario): Promise<S
   return result
 }
 
-function readState(root: string): unknown {
+export function readState(root: string): unknown {
   const caches = [join(root, '.git/faster/node_modules/.vite/vitest'), join(root, 'node_modules/.vite/vitest')]
     .filter(cache => existsSync(cache))
   if (!caches.length) {
@@ -220,26 +220,27 @@ function expandState(state: any): unknown {
     return { environment, shape, ids: decoded, hashes: decoded.map((_, index) => hashes.slice(index * width, (index + 1) * width)) }
   })
   const expanded: { tests: Record<string, unknown>; functionTests: Record<string, unknown> } = { tests: {}, functionTests: {} }
-  for (const [key, [files, snapshots]] of Object.entries<[number[], number[]?]>(state.tests)) {
-    const tests: Record<string, string> = {}
-    const functions: Record<string, unknown> = {}
-    files.forEach((fileIndex, position) => {
-      const [path, sourceHash] = state.files[fileIndex]
-      tests[path] = sourceHash
-      const snapshotIndex = snapshots?.[position] ?? -1
-      if (snapshotIndex !== -1) {
-        const [modelIndex, calls] = state.snapshots[snapshotIndex]
-        const model = models[modelIndex]
-        functions[path] = {
-          sourceHash,
-          environment: model.environment,
-          shape: model.shape,
-          functions: Object.fromEntries(model.ids.map((id: string, index: number) => [id, { hash: model.hashes[index], called: called[calls[index]] }])),
+  for (const [project, entries] of Object.entries<Record<string, [number[], number[]]>>(state.tests)) {
+    for (const [file, [files, snapshots]] of Object.entries(entries)) {
+      const tests: Record<string, string> = {}
+      const functions: Record<string, unknown> = {}
+      files.forEach((fileIndex, position) => {
+        const [path, sourceHash] = state.files[fileIndex]
+        tests[path] = sourceHash
+        if (snapshots[position] !== -1) {
+          const [modelIndex, calls] = state.snapshots[snapshots[position]]
+          const model = models[modelIndex]
+          functions[path] = {
+            sourceHash,
+            environment: model.environment,
+            shape: model.shape,
+            functions: Object.fromEntries(model.ids.map((id: string, index: number) => [id, { hash: model.hashes[index], called: called[calls[index]] }])),
+          }
         }
-      }
-    })
-    expanded.tests[key] = tests
-    expanded.functionTests[key] = functions
+      })
+      expanded.tests[`${project}:${file}`] = tests
+      expanded.functionTests[`${project}:${file}`] = functions
+    }
   }
   return expanded
 }

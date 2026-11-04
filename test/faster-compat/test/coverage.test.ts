@@ -1,19 +1,10 @@
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { Session } from 'node:inspector/promises'
-import { join, resolve } from 'node:path'
-import { afterEach, expect, test } from 'vitest'
-import { startFunctionCoverage } from '../../../packages/vitest-faster/src/coverage'
-import { readSourceState } from './harness'
-import { git, runVitest } from './repository'
-
-const compat = resolve(import.meta.dirname, '..')
-const cleanup: string[] = []
-
-afterEach(() => {
-  for (const directory of cleanup.splice(0)) {
-    rmSync(directory, { recursive: true, force: true })
-  }
-})
+import { join } from 'node:path'
+import { expect, test } from 'vitest'
+import { FUNCTION_COVERAGE_ENV, startFunctionCoverage } from '../../../packages/vitest-faster/src/coverage'
+import { readState } from './harness'
+import { createRepository, runVitest } from './repository'
 
 function branchy(value: number): string {
   if (value > 0) {
@@ -50,11 +41,7 @@ test('starts the provider\'s V8 coverage without block counts and restores the i
   }
 })
 
-function createRepository(userCoverage: boolean) {
-  const fixtures = join(compat, 'fixtures')
-  mkdirSync(fixtures, { recursive: true })
-  const root = mkdtempSync(join(fixtures, 'coverage-'))
-  cleanup.push(root)
+function createProjects(userCoverage: boolean) {
   const coverage = userCoverage ? { enabled: true, reporter: ['json-summary'] } : {}
   const files: Record<string, string> = {
     '.gitignore': 'node_modules\ncoverage\n',
@@ -71,25 +58,17 @@ function createRepository(userCoverage: boolean) {
       `import { expect, test } from 'vitest'`,
       `import { value } from '../src/value.js'`,
       `test('${name}', () => {`,
-      `  appendFileSync(${JSON.stringify(join(root, 'workers.log'))}, '${name}: ' + (process.env.VITEST_FASTER_FUNCTION_COVERAGE ?? 'unset') + '\\n')`,
+      `  appendFileSync('workers.log', '${name}: ' + (process.env.${FUNCTION_COVERAGE_ENV} ?? 'unset') + '\\n')`,
       `  expect(value(true)).toBe(1)`,
       `})`,
       '',
     ].join('\n')
   }
-  for (const [file, content] of Object.entries(files)) {
-    mkdirSync(join(root, file, '..'), { recursive: true })
-    writeFileSync(join(root, file), content)
-  }
-  git(root, 'init', '-q')
-  git(root, 'add', '.')
-  git(root, 'commit', '-qm', 'init')
-  return root
+  return createRepository('coverage-', files)
 }
 
 function recordedFunctions(root: string) {
-  const cache = join(root, '.git/faster/node_modules/.vite/vitest')
-  const state = readSourceState(join(cache, readdirSync(cache)[0])) as { functionTests: Record<string, Record<string, { functions: Record<string, { called: boolean | null }> }>> }
+  const [state] = Object.values(readState(root) as Record<string, { functionTests: Record<string, Record<string, { functions: Record<string, { called: boolean | null }> }>> }>)
   return Object.fromEntries(Object.entries(state.functionTests).map(([test, paths]) => [
     test,
     Object.values(paths['src/value.js'].functions).map(fn => fn.called),
@@ -97,7 +76,7 @@ function recordedFunctions(root: string) {
 }
 
 test('workers of every project skip block coverage when FASTER alone enables it', async () => {
-  const root = createRepository(false)
+  const root = createProjects(false)
   const { files } = await runVitest(root, { CI: 'true' })
   expect(files).toEqual(['one.test.js', 'two.test.js'])
   expect(readFileSync(join(root, 'workers.log'), 'utf8').split('\n').filter(Boolean).sort()).toEqual(['one: 1', 'two: 1'])
@@ -116,7 +95,7 @@ test('workers of every project skip block coverage when FASTER alone enables it'
 })
 
 test('workers keep block coverage for the user\'s coverage report', async () => {
-  const root = createRepository(true)
+  const root = createProjects(true)
   const { files } = await runVitest(root, { CI: 'true' })
   expect(files).toEqual(['one.test.js', 'two.test.js'])
   expect(readFileSync(join(root, 'workers.log'), 'utf8').split('\n').filter(Boolean).sort()).toEqual(['one: unset', 'two: unset'])

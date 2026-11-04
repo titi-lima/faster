@@ -5,8 +5,9 @@ import { importV8Provider } from './v8'
 
 const REGISTRY = Symbol.for('vitest-faster.hosts')
 /**
- * Set by the node-side provider when no coverage report is written, so the
- * coverage collected in workers only feeds FASTER. Workers inherit it.
+ * Set by the node-side provider in this Vitest's `env` when no coverage
+ * report is written, so the coverage collected in workers only feeds FASTER.
+ * Vitest passes `env` to every worker it starts.
  */
 export const FUNCTION_COVERAGE_ENV = 'VITEST_FASTER_FUNCTION_COVERAGE'
 
@@ -88,15 +89,16 @@ class FasterCoverageProvider implements CoverageProvider {
     const reportless = role?.ownsCoverage
       && !(vitest as any).configOverride?.coverage
       && vitest.projects.every(project => !project.isBrowserEnabled())
+    const env: Record<string, string> = ((vitest.config as any).env ??= {})
     if (role && (!role.rootEnabled || reportless)) {
-      process.env[FUNCTION_COVERAGE_ENV] = '1'
+      env[FUNCTION_COVERAGE_ENV] = '1'
       // Vitest 5 workers write coverage files here; the V8 provider would create it.
       const coverage: any = vitest.config.coverage
       const shard = vitest.config.shard
       this.filesDirectory = resolve(vitest.config.root, coverage.reportsDirectory, `.tmp${shard ? `-${shard.index}-${shard.count}` : ''}`)
       return
     }
-    delete process.env[FUNCTION_COVERAGE_ENV]
+    delete env[FUNCTION_COVERAGE_ENV]
     const v8Module = await importV8Provider(vitest.config.root)
     this.inner = await v8Module.getProvider()
     await this.inner!.initialize(vitest)

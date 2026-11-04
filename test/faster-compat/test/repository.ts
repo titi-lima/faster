@@ -1,12 +1,30 @@
 import { execFileSync } from 'node:child_process'
-import { existsSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { basename, join, resolve } from 'node:path'
 import { x } from 'tinyexec'
+import { onTestFinished } from 'vitest'
 
-const vitestBin = join(resolve(import.meta.dirname, '..'), 'node_modules/vitest/vitest.mjs')
+const compat = resolve(import.meta.dirname, '..')
+const vitestBin = join(compat, 'node_modules/vitest/vitest.mjs')
 
 export function git(cwd: string, ...args: string[]): void {
   execFileSync('git', ['-c', 'user.name=faster', '-c', 'user.email=faster@test', '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', ...args], { cwd, stdio: 'pipe' })
+}
+
+/** Commits `files` to a new Git repository under `fixtures/`, removed when the current test finishes. */
+export function createRepository(prefix: string, files: Record<string, string>): string {
+  const fixtures = join(compat, 'fixtures')
+  mkdirSync(fixtures, { recursive: true })
+  const root = mkdtempSync(join(fixtures, prefix))
+  onTestFinished(() => rmSync(root, { recursive: true, force: true }))
+  for (const [file, content] of Object.entries(files)) {
+    mkdirSync(join(root, file, '..'), { recursive: true })
+    writeFileSync(join(root, file), content)
+  }
+  git(root, 'init', '-q')
+  git(root, 'add', '.')
+  git(root, 'commit', '-qm', 'init')
+  return root
 }
 
 /** Runs the workspace's Vitest in `root`, returning the names of the test files it ran, sorted, and its output. */
