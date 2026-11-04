@@ -21,6 +21,7 @@ export default () => [
       index: 'src/index.ts',
       coverage: 'src/coverage.ts',
       runner: 'src/runner.ts',
+      recorder: 'src/recorder.ts',
       cli: 'src/cli.ts',
     },
     output: {

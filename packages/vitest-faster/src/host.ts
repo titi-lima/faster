@@ -1,6 +1,7 @@
 import type { Reporter, RunnerTestFile, TestProject, TestSpecification, Vitest } from 'vitest/node'
 import type { FasterOptions, ResolvedFasterOptions } from './decision/priorityManifest'
 import type { FasterSourceSnapshots } from './decision/sourceChanges'
+import type { FasterSafety } from './escapes'
 import type { HostSequencerOptions } from './sequencer'
 import type { FasterStateDir } from './stateFile'
 import { readFileSync } from 'node:fs'
@@ -19,16 +20,20 @@ import {
   getTestSourceChanges,
   saveTestRunSourceSnapshots,
 } from './decision/sourceChanges'
+import { FasterEscapes, resolveSafety } from './escapes'
 import { FasterResults } from './results'
 import { createHostSequencer } from './sequencer'
-import { markFasterStateDirCleared, resolveFasterStateDir, seedFasterStateDir } from './stateFile'
+import { fileKey, markFasterStateDirCleared, resolveFasterStateDir, seedFasterStateDir } from './stateFile'
 
 export const PLUGIN_NAME = 'vitest-faster'
 export const PRIORITIES_KEY = '__vitestFasterPriorities'
 const REGISTRY = Symbol.for('vitest-faster.hosts')
 const MODULE_CACHE_COMMENT = '\n//# vitestCache='
 
-export type FasterLayer = boolean | FasterOptions | undefined
+type FasterLayerOptions = FasterOptions & { safety?: unknown }
+export type FasterLayer = boolean | FasterLayerOptions | undefined
+/** The fork's options for a project, plus the plugin's own `safety`. */
+type ResolvedOptions = ResolvedFasterOptions & { safety: FasterSafety }
 
 interface CoverageRole {
   /** Provider name the fork reads from `vitest._coverageOptions.provider`. */
@@ -50,13 +55,14 @@ interface CoverageRole {
  */
 export class FasterHost {
   readonly results: FasterResults = new FasterResults()
+  readonly escapes: FasterEscapes = new FasterEscapes()
   readonly options: WeakMap<TestProject, FasterLayer[]> = new WeakMap()
   rootOptions: FasterLayer[] | undefined
   root!: ResolvedFasterOptions
   coverage: CoverageRole | undefined
   capture: Promise<FasterSourceSnapshots> | undefined
   private previousFiles: Set<RunnerTestFile> | undefined
-  private resolved = new WeakMap<TestProject, ResolvedFasterOptions>()
+  private resolved = new WeakMap<TestProject, ResolvedOptions>()
   private projectFacades = new WeakMap<TestProject, any>()
   private specificationFacades = new WeakMap<TestSpecification, any>()
   private stats = new Map<string, { size: number }>()
@@ -115,10 +121,14 @@ export class FasterHost {
     return this.stateConfig
   }
 
-  faster(project: TestProject): ResolvedFasterOptions {
+  faster(project: TestProject): ResolvedOptions {
     let resolved = this.resolved.get(project)
     if (!resolved) {
-      resolved = resolveFasterOptions(project.config.root, mergeLayers(this.options.get(project)))
+      const layers = mergeLayers(this.options.get(project))
+      resolved = {
+        ...resolveFasterOptions(project.config.root, layers),
+        safety: resolveSafety(typeof layers === 'object' ? layers.safety : undefined, isCI()),
+      }
       this.resolved.set(project, resolved)
     }
     return resolved
@@ -212,7 +222,7 @@ export class FasterHost {
 
   async populateStats(specifications: TestSpecification[]): Promise<void> {
     await Promise.all(specifications.map(async (specification) => {
-      const key = `${specification.project.name}:${relative(this.vitest.config.root, specification.moduleId)}`
+      const key = fileKey(this.vitest.config.root, specification.project.name, specification.moduleId)
       const size = await stat(specification.moduleId).then(result => result.size, () => undefined)
       if (size != null) {
         this.stats.set(key, { size })
@@ -246,9 +256,11 @@ export class FasterHost {
       await seedFasterStateDir(this.stateDir)
     }
     this.results.configure(vitest.config.root, this.stateDir?.dir)
-    await this.results.read()
+    this.escapes.configure(vitest.config.root, this.stateDir?.dir)
+    await Promise.all([this.results.read(), this.escapes.read()])
 
     this.configureCoverage()
+    this.configureEscapes()
     this.configureSelection()
     this.configureSequencer()
     this.configurePriorities()
@@ -317,6 +329,18 @@ export class FasterHost {
     }
   }
 
+  /** Workers record escapes through a setup file that runs before the project's own. */
+  private configureEscapes(): void {
+    const recorder = fileURLToPath(new URL('./recorder.js', import.meta.url))
+    for (const project of this.vitest.projects) {
+      if (!this.faster(project).enabled || project.isBrowserEnabled() || this.faster(project).safety === 'off') {
+        continue
+      }
+      const config = project.config as any
+      config.setupFiles = [recorder, ...(config.setupFiles ?? [])]
+    }
+  }
+
   private configureSelection(): void {
     const vitest = this.vitest
     const config = vitest.config as any
@@ -342,12 +366,37 @@ export class FasterHost {
       if (!tracked.length || tracked.some(spec => typeof this.faster(spec.project).changed === 'string')) {
         return relevant
       }
-      const changes = await getTestSourceChanges(this.context, tracked.map(spec => this.specification(spec)))
-      return relevant.filter((spec) => {
+      const key = (spec: TestSpecification) => fileKey(vitest.config.root, spec.project.name, spec.moduleId)
+      const [changes, changedReads] = await Promise.all([
+        getTestSourceChanges(this.context, tracked.map(spec => this.specification(spec))),
+        this.escapes.changedReads(tracked.filter(spec => this.faster(spec.project).safety !== 'off').map(key)),
+      ])
+      const escaping: Record<'strict' | 'fast', string[]> = { strict: [], fast: [] }
+      const selected = relevant.filter((spec) => {
+        const id = key(spec)
         const change = changes.get(this.specification(spec))
-        const failed = this.results.get(`${spec.project.name}:${relative(vitest.config.root, spec.moduleId)}`)?.failed
-        return !change || !change.known || change.testChanged || change.changed || failed
+        if (!change || !change.known || change.testChanged || change.changed || this.results.get(id)?.failed || changedReads.has(id)) {
+          return true
+        }
+        const safety = this.faster(spec.project).safety
+        const opaque = this.escapes.get(id)?.opaque
+        if (safety === 'off' || !opaque?.length) {
+          return false
+        }
+        escaping[safety].push(`${relative(vitest.config.root, spec.moduleId)} (${opaque.slice(0, 2).map(escape => `${escape.kind}: ${escape.target}`).join(', ')}${opaque.length > 2 ? ', …' : ''})`)
+        return safety === 'strict'
       })
+      this.reportEscaping(escaping)
+      return selected
+    }
+  }
+
+  private reportEscaping(escaping: Record<'strict' | 'fast', string[]>): void {
+    for (const [safety, verb] of [['strict', 'running'], ['fast', 'skipped']] as const) {
+      const files = escaping[safety]
+      if (files.length) {
+        this.vitest.logger.log(`[${PLUGIN_NAME}] ${safety}: ${verb} ${files.length} unaffected test file(s) that left their worker in their last run: ${files.slice(0, 5).join(', ')}${files.length > 5 ? `, and ${files.length - 5} more` : ''}`)
+      }
     }
   }
 
@@ -388,6 +437,7 @@ export class FasterHost {
       vitest[method] = async (...args: unknown[]) => {
         await clear.apply(vitest, args)
         await this.results.clear()
+        await this.escapes.clear()
         await clearFasterSourceSnapshots(this.context)
         if (this.stateDir) {
           await markFasterStateDirCleared(this.stateDir)
@@ -396,11 +446,18 @@ export class FasterHost {
     }
   }
 
-  /** Starts the pre-run source snapshot; the fork starts it next to the pool. */
+  /**
+   * Starts the pre-run source snapshot, which the fork starts next to the pool,
+   * and hashes the files the recorded tests read before any of them runs.
+   */
   startCapture(specifications: TestSpecification[]): Promise<FasterSourceSnapshots> {
     this.capture = captureTestRunSourceSnapshots(this.context, specifications.map(spec => this.specification(spec)))
       .catch(() => new Map())
-    return this.capture
+    const reads = this.escapes.capture(specifications
+      .filter(spec => this.faster(spec.project).safety !== 'off')
+      .map(spec => fileKey(this.vitest.config.root, spec.project.name, spec.moduleId)))
+      .catch(() => {})
+    return Promise.all([this.capture, reads]).then(([capture]) => capture)
   }
 
   recordCoverage(meta: { coverage: unknown; testFiles: string[]; environment: string; projectName?: string }): void {
@@ -437,10 +494,12 @@ export class FasterHost {
           return
         }
         const files = this.vitest.state.getFiles()
+        const executed = files.filter(file => !previousFiles.has(file))
         this.results.update(files)
+        const escapes = this.escapes.update(executed).then(() => this.escapes.write()).catch(() => {})
         try {
           if (reason !== 'interrupted' && capture) {
-            await saveTestRunSourceSnapshots(this.context, await capture, files.filter(file => !previousFiles.has(file)))
+            await saveTestRunSourceSnapshots(this.context, await capture, executed)
           }
         }
         catch {}
@@ -448,10 +507,12 @@ export class FasterHost {
           await this.results.write()
         }
         catch {}
+        await escapes
       },
       onTestRemoved: (id) => {
         if (id) {
           this.results.remove(id)
+          this.escapes.remove(id)
         }
       },
     }
@@ -469,11 +530,11 @@ export function getHost(vitest: Vitest): FasterHost {
   return host
 }
 
-export function mergeLayers(layers: FasterLayer[] | undefined): boolean | FasterOptions {
+export function mergeLayers(layers: FasterLayer[] | undefined): boolean | FasterLayerOptions {
   if (!layers) {
     return false
   }
-  let merged: FasterOptions = {}
+  let merged: FasterLayerOptions = {}
   for (const layer of layers) {
     if (layer == null) {
       continue
@@ -489,6 +550,10 @@ export function mergeLayers(layers: FasterLayer[] | undefined): boolean | Faster
 function isBuiltinSequencer(sequencer: unknown): boolean {
   return sequencer === BaseSequencer
     || (typeof sequencer === 'function' && sequencer.name === 'RandomSequencer' && Object.getPrototypeOf(sequencer) === BaseSequencer)
+}
+
+function isCI(): boolean {
+  return Boolean(process.env.CI) && !['0', 'false'].includes(process.env.CI!.toLowerCase())
 }
 
 function readCliOptions(): FasterLayer {

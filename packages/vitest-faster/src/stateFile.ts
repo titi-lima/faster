@@ -3,7 +3,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs'
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, resolve } from 'pathe'
 
-export const FASTER_STATE_FILES = ['faster-sources.json', 'faster-results.json']
+export const FASTER_STATE_FILES = ['faster-sources.json', 'faster-results.json', 'faster-escapes.json']
 
 export interface FasterStateDir {
   dir: string
@@ -76,5 +76,65 @@ export async function writeFasterStateFile(path: string, contents: string): Prom
   }
   finally {
     await rm(temporaryPath, { force: true })
+  }
+}
+
+/** Key of a test file in FASTER's per-file state: its project and its path from the root. */
+export function fileKey(root: string, projectName: string | undefined, filepath: string): string {
+  return `${projectName || ''}:${relative(root, filepath)}`
+}
+
+/** Per-test-file records kept in one versioned JSON state file. */
+export class FasterStateStore<T> {
+  protected records = new Map<string, T>()
+  protected root = '/'
+  private path: string | undefined
+
+  constructor(private readonly name: string, private readonly version: string, private readonly field: string) {}
+
+  configure(root: string, stateDir: string | undefined): void {
+    this.root = root
+    this.path = stateDir ? resolve(stateDir, this.name) : undefined
+  }
+
+  get(key: string): T | undefined {
+    return this.records.get(key)
+  }
+
+  async read(): Promise<void> {
+    if (!this.path) {
+      return
+    }
+    try {
+      const state = JSON.parse(await readFile(this.path, 'utf8'))
+      if (state.version === this.version && Array.isArray(state[this.field])) {
+        this.records = new Map(state[this.field])
+      }
+    }
+    catch {}
+  }
+
+  /** Forgets a deleted test file in every project; Vitest reports it by absolute path. */
+  remove(filepath: string): void {
+    const suffix = `:${relative(this.root, filepath)}`
+    for (const key of this.records.keys()) {
+      if (key.endsWith(suffix)) {
+        this.records.delete(key)
+      }
+    }
+  }
+
+  async write(): Promise<void> {
+    if (!this.path) {
+      return
+    }
+    await writeFasterStateFile(this.path, JSON.stringify({ version: this.version, [this.field]: [...this.records] }))
+  }
+
+  async clear(): Promise<void> {
+    this.records.clear()
+    if (this.path) {
+      await rm(this.path, { force: true })
+    }
   }
 }
