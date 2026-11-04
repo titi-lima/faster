@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
 import { afterEach, expect, test } from 'vitest'
@@ -61,6 +61,34 @@ test('a new worktree starts from the main worktree\'s history and keeps its own 
 
   git(main, 'worktree', 'remove', '--force', worktree)
   expect(existsSync(worktreeState)).toBe(false)
+})
+
+test('deletes the uncompressed history of earlier versions in this worktree only', async () => {
+  const fixtures = join(compat, 'fixtures')
+  mkdirSync(fixtures, { recursive: true })
+  const { main, worktree } = createRepository(fixtures, project)
+  await runFaster(main)
+  git(main, 'worktree', 'add', '-q', worktree)
+  const [hash] = readdirSync(join(main, '.git/faster/node_modules/.vite/vitest'))
+  const legacy = {
+    'main state': join(main, '.git/faster/node_modules/.vite/vitest', hash),
+    'worktree cache': join(worktree, 'node_modules/.vite/vitest', hash),
+    'worktree state': join(main, '.git/worktrees', basename(worktree), 'faster/node_modules/.vite/vitest', hash),
+  }
+  for (const directory of Object.values(legacy)) {
+    mkdirSync(directory, { recursive: true })
+    writeFileSync(join(directory, 'faster-sources.json'), '{"version":1,"tests":{}}')
+  }
+
+  await runFaster(worktree)
+  expect(Object.fromEntries(Object.entries(legacy).map(([name, directory]) => [name, existsSync(join(directory, 'faster-sources.json'))]))).toMatchInlineSnapshot(`
+    {
+      "main state": true,
+      "worktree cache": false,
+      "worktree state": false,
+    }
+  `)
+  expect(existsSync(join(legacy['worktree state'], 'faster-sources.json.br'))).toBe(true)
 })
 
 test('locates history in the worktree\'s Git directory only at the top of a worktree', () => {

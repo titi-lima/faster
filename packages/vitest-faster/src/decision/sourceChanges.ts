@@ -16,8 +16,6 @@ import { collectFasterFunctionSnapshots, FUNCTION_HASH_LENGTH, isFunctionDepende
 
 const STATE_VERSION = 2
 const STATE_FILE = 'faster-sources.json.br'
-/** Version 1, before sources were interned; up to 90 MB on large suites. */
-const LEGACY_STATE_FILE = 'faster-sources.json'
 const MISSING_SOURCE = '<missing>'
 const compress = promisify(brotliCompress)
 const decompress = promisify(brotliDecompress)
@@ -209,7 +207,7 @@ function forgetDeletedTests(state: FasterSourceState, specifications: Iterable<T
 export async function clearFasterSourceSnapshots(vitest: Vitest): Promise<void> {
   const statePath = getStatePath(vitest)
   if (statePath) {
-    await Promise.all([rm(statePath, { force: true }), rm(resolve(dirname(statePath), LEGACY_STATE_FILE), { force: true })])
+    await rm(statePath, { force: true })
   }
 }
 
@@ -524,5 +522,4 @@ async function writeState(filepath: string, state: FasterSourceState): Promise<v
   finally {
     await rm(temporaryPath, { force: true })
   }
-  await rm(resolve(dirname(filepath), LEGACY_STATE_FILE), { force: true })
 }

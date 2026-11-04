@@ -5,6 +5,9 @@ import { dirname, isAbsolute, join, relative, resolve } from 'pathe'
 
 export const FASTER_STATE_FILES = ['faster-sources.json.br', 'faster-results.json', 'faster-escapes.json']
 
+/** Source history of earlier versions, uncompressed and up to 90 MB; nothing reads it any more. */
+const LEGACY_FASTER_STATE_FILES = ['faster-sources.json']
+
 export interface FasterStateDir {
   dir: string
   seedDirs: string[]
@@ -59,6 +62,13 @@ export async function seedFasterStateDir({ dir, seedDirs }: FasterStateDir): Pro
       }
     }
   }))
+}
+
+/** Deletes the history earlier versions kept where this one keeps its own or seeds it from. */
+export async function removeLegacyFasterState({ dir, seedDirs }: FasterStateDir): Promise<void> {
+  // The first seed directory is the cache directory inside this worktree; later ones belong to other worktrees.
+  const own = [dir, ...seedDirs.slice(0, 1)]
+  await Promise.all(own.flatMap(directory => LEGACY_FASTER_STATE_FILES.map(name => rm(join(directory, name), { force: true }))))
 }
 
 export async function markFasterStateDirCleared({ dir, seedDirs }: FasterStateDir): Promise<void> {

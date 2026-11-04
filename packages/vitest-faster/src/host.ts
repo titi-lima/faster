@@ -23,7 +23,7 @@ import {
 import { FasterEscapes, resolveSafety } from './escapes'
 import { FasterResults } from './results'
 import { createHostSequencer } from './sequencer'
-import { fileKey, markFasterStateDirCleared, resolveFasterStateDir, seedFasterStateDir } from './stateFile'
+import { fileKey, markFasterStateDirCleared, removeLegacyFasterState, resolveFasterStateDir, seedFasterStateDir } from './stateFile'
 
 export const PLUGIN_NAME = 'vitest-faster'
 export const PRIORITIES_KEY = '__vitestFasterPriorities'
@@ -253,7 +253,7 @@ export class FasterHost {
     const cacheDir = vitest.config.cache === false ? undefined : (vitest.config.cache as any).dir
     this.stateDir = cacheDir ? resolveFasterStateDir(vitest.config.root, cacheDir) : undefined
     if (this.stateDir) {
-      await seedFasterStateDir(this.stateDir)
+      await Promise.all([seedFasterStateDir(this.stateDir), removeLegacyFasterState(this.stateDir)])
     }
     this.results.configure(vitest.config.root, this.stateDir?.dir)
     this.escapes.configure(vitest.config.root, this.stateDir?.dir)
