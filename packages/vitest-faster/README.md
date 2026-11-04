@@ -145,8 +145,11 @@ A project without the plugin behaves like `faster: false` in the fork.
 
 - **Coverage.** Function-level relevance needs V8 coverage. Without your own
   coverage settings, the plugin enables V8 collection only, with no reports;
-  temporary files go to Vitest's cache directory. With your own V8 coverage
-  settings, reports and thresholds work as before. With Istanbul or a custom
+  temporary files go to Vitest's cache directory. Workers then count function
+  calls without block coverage, which is all FASTER reads and cheaper to
+  collect; to do so, each project's workers start your V8 provider through
+  the plugin's coverage module. With your own V8 coverage settings, reports
+  and thresholds work as before. With Istanbul or a custom
   provider, the plugin leaves coverage alone and FASTER uses dependency-level
   relevance, as the fork does.
 - **Sequencer.** FASTER orders the files unless you configured

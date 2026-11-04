@@ -314,10 +314,14 @@ export class FasterHost {
       }
       rootCoverage.reportsDirectory = reportsDirectory
     }
-    // Workers keep the user's V8 provider, so they send the exact payload the fork records.
+    const customProviderModule = fileURLToPath(new URL('./coverage.js', import.meta.url))
+    // Workers run the user's V8 provider. Without user coverage, nothing reports
+    // it, so they start it through FASTER's module, which skips block coverage.
     for (const [project, coverage] of projectCoverage) {
       if (project.config !== root) {
-        ;(project.config as any).coverage = coverage
+        ;(project.config as any).coverage = !userCoverage.enabled && coverage.enabled && !project.isBrowserEnabled()
+          ? { ...coverage, provider: 'custom', customProviderModule }
+          : coverage
       }
     }
     // The root provider is the only node-side hook that receives worker coverage.
@@ -325,7 +329,7 @@ export class FasterHost {
       ...rootCoverage,
       enabled: true,
       provider: 'custom',
-      customProviderModule: fileURLToPath(new URL('./coverage.js', import.meta.url)),
+      customProviderModule,
     }
   }
 
