@@ -106,18 +106,20 @@ test('copies the first history it finds once and never over a cleared one', asyn
   mkdirSync(main, { recursive: true })
   writeFileSync(join(own, 'faster-results.json'), 'own results')
   writeFileSync(join(main, 'faster-results.json'), 'main results')
-  writeFileSync(join(main, 'faster-sources.json'), 'main sources')
+  // The sources are compressed, so they are copied as bytes.
+  const sources = Buffer.from([0x0B, 0xFF, 0x80, 0x00, 0xC3])
+  writeFileSync(join(main, 'faster-sources.json.br'), sources)
 
   await seedFasterStateDir(location)
   expect(readFileSync(join(location.dir, 'faster-results.json'), 'utf8')).toBe('own results')
-  expect(readFileSync(join(location.dir, 'faster-sources.json'), 'utf8')).toBe('main sources')
+  expect(readFileSync(join(location.dir, 'faster-sources.json.br'))).toEqual(sources)
 
-  writeFileSync(join(main, 'faster-sources.json'), 'newer main sources')
+  writeFileSync(join(main, 'faster-sources.json.br'), 'newer main sources')
   await seedFasterStateDir(location)
-  expect(readFileSync(join(location.dir, 'faster-sources.json'), 'utf8')).toBe('main sources')
+  expect(readFileSync(join(location.dir, 'faster-sources.json.br'))).toEqual(sources)
 
   await markFasterStateDirCleared(location)
   await seedFasterStateDir(location)
-  expect(readFileSync(join(location.dir, 'faster-sources.json'), 'utf8')).toBe('')
+  expect(readFileSync(join(location.dir, 'faster-sources.json.br'), 'utf8')).toBe('')
   expect(readFileSync(join(location.dir, 'faster-results.json'), 'utf8')).toBe('')
 })

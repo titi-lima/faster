@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { brotliDecompressSync } from 'node:zlib'
 import { x } from 'tinyexec'
 
 const compatRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
@@ -171,9 +172,9 @@ function readState(root: string): unknown {
   const state: Record<string, unknown> = {}
   for (const cache of caches) {
     for (const dir of readdirSync(cache)) {
-      const file = join(cache, dir, 'faster-sources.json')
-      if (!(dir in state) && existsSync(file)) {
-        state[dir] = JSON.parse(readFileSync(file, 'utf8'))
+      const sources = readSourceState(join(cache, dir))
+      if (!(dir in state) && sources) {
+        state[dir] = sources
       }
     }
   }
@@ -181,12 +182,75 @@ function readState(root: string): unknown {
 }
 
 /**
+ * FASTER's per-test source and function state in a cache directory, in the
+ * fork's layout: the fork's `faster-sources.json`, or the plugin's compressed
+ * `faster-sources.json.br` expanded.
+ */
+export function readSourceState(directory: string): unknown {
+  const plugin = join(directory, 'faster-sources.json.br')
+  const fork = join(directory, 'faster-sources.json')
+  if (existsSync(plugin)) {
+    return expandState(JSON.parse(brotliDecompressSync(readFileSync(plugin)).toString('utf8')))
+  }
+  return existsSync(fork) ? expandState(JSON.parse(readFileSync(fork, 'utf8'))) : undefined
+}
+
+/**
+ * The plugin stores each source version, function model and snapshot once and
+ * refers to them by index; the fork stores them in every test file's entry.
+ * This expands the plugin's state into the fork's layout, without its
+ * version, so the two compare entry by entry.
+ */
+function expandState(state: any): unknown {
+  if (state.version !== 2) {
+    const { version: _, ...rest } = state
+    return rest
+  }
+  const called: Record<string, boolean | null> = { '1': true, '0': false, '-': null }
+  const models = state.models.map(([environment, shape, ids, hashes]: string[]) => {
+    let previous = ''
+    const decoded = ids
+      ? ids.split(' ').map((entry) => {
+          const separator = entry.indexOf(':')
+          previous = previous.slice(0, Number.parseInt(entry.slice(0, separator), 36)) + entry.slice(separator + 1)
+          return previous
+        })
+      : []
+    const width = hashes.length / Math.max(decoded.length, 1)
+    return { environment, shape, ids: decoded, hashes: decoded.map((_, index) => hashes.slice(index * width, (index + 1) * width)) }
+  })
+  const expanded: { tests: Record<string, unknown>; functionTests: Record<string, unknown> } = { tests: {}, functionTests: {} }
+  for (const [key, [files, snapshots]] of Object.entries<[number[], number[]?]>(state.tests)) {
+    const tests: Record<string, string> = {}
+    const functions: Record<string, unknown> = {}
+    files.forEach((fileIndex, position) => {
+      const [path, sourceHash] = state.files[fileIndex]
+      tests[path] = sourceHash
+      const snapshotIndex = snapshots?.[position] ?? -1
+      if (snapshotIndex !== -1) {
+        const [modelIndex, calls] = state.snapshots[snapshotIndex]
+        const model = models[modelIndex]
+        functions[path] = {
+          sourceHash,
+          environment: model.environment,
+          shape: model.shape,
+          functions: Object.fromEntries(model.ids.map((id: string, index: number) => [id, { hash: model.hashes[index], called: called[calls[index]] }])),
+        }
+      }
+    })
+    expanded.tests[key] = tests
+    expanded.functionTests[key] = functions
+  }
+  return expanded
+}
+
+/**
  * FASTER's persisted state with every structural (`shape`) and function body
  * hash replaced by the order in which that value first appeared for the same
  * source and function across the run's steps. The raw hashes fingerprint the
  * transformed code, which embeds each installation's absolute dependency
- * paths; the decisions only compare a hash with the previous one, which the
- * ordinals preserve. Source hashes, tracked paths, function identities and
+ * paths, and the plugin stores shorter ones than the fork; the decisions only
+ * compare a hash with the previous one, which the ordinals preserve. Source hashes, tracked paths, function identities and
  * call observations are kept as they are.
  */
 export function canonicalStates(states: any[]): unknown[] {

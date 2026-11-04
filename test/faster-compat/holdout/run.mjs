@@ -5,7 +5,7 @@ import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { isDeepStrictEqual } from 'node:util'
 import { packFork } from '../scripts/pack-fork.mjs'
-import { canonicalStates } from '../test/harness.ts'
+import { canonicalStates, readSourceState } from '../test/harness.ts'
 
 /**
  * Replays real commits of holdout subjects through the FASTER fork and through
@@ -243,9 +243,9 @@ function readPersisted(clone) {
   const sources = {}
   const history = {}
   for (const directory of existsSync(cache) ? readdirSync(cache).sort() : []) {
-    const state = join(cache, directory, 'faster-sources.json')
-    if (existsSync(state)) {
-      sources[directory] = JSON.parse(readFileSync(state, 'utf8'))
+    const state = readSourceState(join(cache, directory))
+    if (state) {
+      sources[directory] = state
     }
     for (const file of ['results.json', 'faster-results.json']) {
       const path = join(cache, directory, file)

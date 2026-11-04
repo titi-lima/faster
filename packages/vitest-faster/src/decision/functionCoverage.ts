@@ -19,6 +19,7 @@ interface FunctionNode {
   id: string
   node: Node
   parent?: FunctionNode
+  index: number
   children: FunctionNode[]
 }
 
@@ -26,26 +27,58 @@ interface ScriptCoverage extends Profiler.ScriptCoverage {
   startOffset: number
 }
 
-export interface FunctionSnapshot {
-  sourceHash: string
+/**
+ * A module's functions as one environment transformed it: the hash of its
+ * code outside function bodies (`shape`) and, for each function in source
+ * order, its position in the syntax tree and the hash of its body outside
+ * nested functions.
+ */
+export interface StoredFunctionModel {
   environment: string
   shape: string
-  functions: Record<string, { hash: string; called: boolean | null }>
+  ids: readonly string[]
+  hashes: readonly string[]
+}
+
+/** What one test file's last run observed of a module it loaded. */
+export interface FunctionSnapshot {
+  model: StoredFunctionModel
+  /** One character per function of the model: `1` called, `0` not called, `-` unknown. */
+  called: string
+}
+
+/** Characters of a function or shape hash: a 96-bit SHA-1 prefix in base64url. */
+export const FUNCTION_HASH_LENGTH = 16
+
+export const CALLED = '1'
+export const NOT_CALLED = '0'
+export const CALL_UNKNOWN = '-'
+
+/**
+ * The first range of every function V8 reported for one script, as
+ * `[start, end, called]` triples relative to the module code. FASTER reads
+ * nothing else of the coverage, so the rest is dropped as it arrives.
+ */
+interface ScriptRanges {
+  path: string
+  ranges: Int32Array
 }
 
 interface TestCoverage {
   environment: string
-  scripts: ScriptCoverage[]
+  scripts: ScriptRanges[]
 }
 
 interface FunctionModel {
   shape: string
-  functions: { id: string; start: number; end: number; bodyStart: number; parent?: string; hash: string }[]
+  functions: { id: string; end: number; bodyStart: number; parent: number; hash: string }[]
 }
 
 const coverageByRun = new WeakMap<Vitest, Map<string, TestCoverage[]>>()
 const modelCache = new WeakMap<TestProject, Map<string, Promise<FunctionModel>>>()
+const storedModels = new WeakMap<FunctionModel, Map<string, StoredFunctionModel>>()
 const codeHashes = new WeakMap<object, { code: string; hash: string }>()
+const modelIndexes = new WeakMap<StoredFunctionModel, Map<string, number>>()
 
 export function resetFasterFunctionCoverage(vitest: Vitest): void {
   coverageByRun.set(vitest, new Map())
@@ -60,12 +93,37 @@ export function recordFasterFunctionCoverage(project: TestProject, meta: AfterSu
   if (!pending || !Array.isArray(raw?.result) || project.vitest._coverageOptions.provider !== 'v8') {
     return
   }
+  const coverage: TestCoverage = { environment: meta.environment, scripts: reduceScripts(project.config.root, raw.result) }
   for (const filename of meta.testFiles) {
     const key = `${project.name}:${resolve(project.config.root, filename)}`
     const entries = pending.get(key) || []
-    entries.push({ environment: meta.environment, scripts: raw.result })
+    entries.push(coverage)
     pending.set(key, entries)
   }
+}
+
+function reduceScripts(root: string, scripts: ScriptCoverage[]): ScriptRanges[] {
+  const reduced: ScriptRanges[] = []
+  for (const script of scripts) {
+    if (!script.url.startsWith('file:')) {
+      continue
+    }
+    const ranges = new Int32Array(script.functions.length * 3)
+    let length = 0
+    for (const value of script.functions) {
+      const range = value.ranges[0]
+      const start = range.startOffset - script.startOffset
+      const end = range.endOffset - script.startOffset
+      // Without a start offset no range matches a function, as before.
+      if (Number.isInteger(start) && Number.isInteger(end)) {
+        ranges[length++] = start
+        ranges[length++] = end
+        ranges[length++] = range.count > 0 ? 1 : 0
+      }
+    }
+    reduced.push({ path: relative(root, fileURLToPath(script.url)), ranges: ranges.slice(0, length) })
+  }
+  return reduced
 }
 
 export async function createFunctionModel(code: string): Promise<FunctionModel> {
@@ -78,7 +136,7 @@ export async function createFunctionModel(code: string): Promise<FunctionModel> 
       return
     }
     if (['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression'].includes(node.type) && node.body) {
-      const entry = { id: path, node, parent, children: [] } as FunctionNode
+      const entry = { id: path, node, parent, index: functions.length, children: [] } as FunctionNode
       ;(parent ? parent.children : roots).push(entry)
       functions.push(entry)
       parent = entry
@@ -106,21 +164,25 @@ export async function createFunctionModel(code: string): Promise<FunctionModel> 
       cursor = body.end
     }
     parts.push(code.slice(cursor, end))
-    return hash('sha1', parts.join(''), 'hex')
+    return hash('sha1', parts.join(''), 'base64url').slice(0, FUNCTION_HASH_LENGTH)
   }
   return {
     shape: digest(0, code.length, roots),
     functions: functions.map(entry => ({
       id: entry.id,
-      start: entry.node.start,
       end: entry.node.end,
       bodyStart: entry.node.body!.start,
-      parent: entry.parent?.id,
+      parent: entry.parent ? entry.parent.index : -1,
       hash: digest(entry.node.body!.start, entry.node.body!.end, entry.children),
     })),
   }
 }
 
+/**
+ * Function snapshots of the modules one test file loaded in this run, for the
+ * modules in its source snapshot. Models are shared by every test file that
+ * loaded the same transform of a module.
+ */
 export async function collectFasterFunctionSnapshots(
   project: TestProject,
   moduleId: string,
@@ -131,19 +193,15 @@ export async function collectFasterFunctionSnapshots(
   if (!captures?.length || !project.config.isolate || project.config.experimental.viteModuleRunner === false) {
     return snapshots
   }
-  const scripts = new Map<string, { environment: string; values: ScriptCoverage[] }>()
+  const scripts = new Map<string, { environment: string; values: Int32Array[] }>()
   for (const capture of captures) {
     for (const script of capture.scripts) {
-      if (!script.url.startsWith('file:')) {
+      if (!Object.hasOwn(sources, script.path) || sources[script.path] === '<missing>') {
         continue
       }
-      const path = relative(project.config.root, fileURLToPath(script.url))
-      if (!Object.hasOwn(sources, path) || sources[path] === '<missing>') {
-        continue
-      }
-      const entry = scripts.get(path) || { environment: capture.environment, values: [] }
-      entry.values.push(script)
-      scripts.set(path, entry)
+      const entry = scripts.get(script.path) || { environment: capture.environment, values: [] }
+      entry.values.push(script.ranges)
+      scripts.set(script.path, entry)
     }
   }
   await Promise.all([...scripts].map(async ([path, capture]) => {
@@ -152,22 +210,41 @@ export async function collectFasterFunctionSnapshots(
       if (!model) {
         return
       }
-      const called: Record<string, boolean | null> = Object.create(null)
-      const ranges = model.functions.length ? indexFunctionRanges(capture.values) : undefined
-      for (const fn of model.functions) {
-        const matches = (ranges!.get(fn.end) || []).filter(range => range.start <= fn.bodyStart)
-        called[fn.id] = matches.length ? matches.some(range => range.called) : fn.parent && called[fn.parent] === false ? false : null
-      }
       snapshots[path] = {
-        sourceHash: sources[path],
-        environment: capture.environment,
-        shape: model.shape,
-        functions: Object.fromEntries(model.functions.map(fn => [fn.id, { hash: fn.hash, called: called[fn.id] }])),
+        model: storeFunctionModel(model, capture.environment),
+        called: observeCalls(model, capture.values),
       }
     }
     catch {}
   }))
   return snapshots
+}
+
+/**
+ * A function counts as called when one of the ranges V8 reported for it was
+ * executed. V8 omits functions it never compiled, which are uncalled when
+ * their enclosing function was not called and unknown otherwise.
+ */
+function observeCalls(model: FunctionModel, values: Int32Array[]): string {
+  if (!model.functions.length) {
+    return ''
+  }
+  const ranges = indexFunctionRanges(values)
+  const called: string[] = []
+  for (const fn of model.functions) {
+    let found = false
+    let wasCalled = false
+    for (const range of ranges.get(fn.end) || []) {
+      if (range.start <= fn.bodyStart) {
+        found = true
+        wasCalled ||= range.called
+      }
+    }
+    called.push(found
+      ? wasCalled ? CALLED : NOT_CALLED
+      : fn.parent >= 0 && called[fn.parent] === NOT_CALLED ? NOT_CALLED : CALL_UNKNOWN)
+  }
+  return called.join('')
 }
 
 export async function isFunctionDependencyAffected(
@@ -179,19 +256,21 @@ export async function isFunctionDependencyAffected(
     return true
   }
   try {
-    const current = await transformFunctionModel(project, path, previous.environment)
-    if (!current || current.shape !== previous.shape || current.functions.length !== Object.keys(previous.functions).length) {
+    const stored = previous.model
+    const current = await transformFunctionModel(project, path, stored.environment)
+    if (!current || current.shape !== stored.shape || current.functions.length !== stored.ids.length) {
       return true
     }
+    const index = indexModel(stored)
     let changed = false
     for (const fn of current.functions) {
-      const old = previous.functions[fn.id]
-      if (!old) {
+      const position = index.get(fn.id)
+      if (position === undefined) {
         return true
       }
-      if (fn.hash !== old.hash) {
+      if (fn.hash !== stored.hashes[position]) {
         changed = true
-        if (old.called !== false) {
+        if (previous.called[position] !== NOT_CALLED) {
           return true
         }
       }
@@ -203,17 +282,45 @@ export async function isFunctionDependencyAffected(
   }
 }
 
+function indexModel(model: StoredFunctionModel): Map<string, number> {
+  let index = modelIndexes.get(model)
+  if (!index) {
+    index = new Map(model.ids.map((id, position) => [id, position]))
+    modelIndexes.set(model, index)
+  }
+  return index
+}
+
+function storeFunctionModel(model: FunctionModel, environment: string): StoredFunctionModel {
+  let byEnvironment = storedModels.get(model)
+  if (!byEnvironment) {
+    byEnvironment = new Map()
+    storedModels.set(model, byEnvironment)
+  }
+  let stored = byEnvironment.get(environment)
+  if (!stored) {
+    stored = {
+      environment,
+      shape: model.shape,
+      ids: model.functions.map(fn => fn.id),
+      hashes: model.functions.map(fn => fn.hash),
+    }
+    byEnvironment.set(environment, stored)
+  }
+  return stored
+}
+
 /**
  * Groups the V8 function ranges of every captured script by their end offset
  * relative to the script start, the key the function model is matched on.
  */
-function indexFunctionRanges(scripts: ScriptCoverage[]) {
+function indexFunctionRanges(values: Int32Array[]) {
   const ranges = new Map<number, { start: number; called: boolean }[]>()
-  for (const script of scripts) {
-    for (const value of script.functions) {
-      const end = value.ranges[0].endOffset - script.startOffset
+  for (const value of values) {
+    for (let offset = 0; offset < value.length; offset += 3) {
+      const end = value[offset + 1]
       const entries = ranges.get(end) || []
-      entries.push({ start: value.ranges[0].startOffset - script.startOffset, called: value.ranges[0].count > 0 })
+      entries.push({ start: value[offset], called: value[offset + 2] === 1 })
       ranges.set(end, entries)
     }
   }
@@ -241,16 +348,4 @@ async function transformFunctionModel(project: TestProject, path: string, enviro
     cache.set(key, createFunctionModel(result.code))
   }
   return cache.get(key)
-}
-
-export function isFunctionSnapshot(value: unknown): value is FunctionSnapshot {
-  if (!value || typeof value !== 'object') {
-    return false
-  }
-  const snapshot = value as FunctionSnapshot
-  return typeof snapshot.environment === 'string'
-    && typeof snapshot.shape === 'string' && /^[a-f\d]{40}$/.test(snapshot.shape)
-    && typeof snapshot.sourceHash === 'string' && /^[a-f\d]{40}$/.test(snapshot.sourceHash)
-    && Boolean(snapshot.functions) && typeof snapshot.functions === 'object' && !Array.isArray(snapshot.functions)
-    && Object.values(snapshot.functions).every(fn => fn && /^[a-f\d]{40}$/.test(fn.hash) && [true, false, null].includes(fn.called))
 }

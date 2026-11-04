@@ -175,7 +175,8 @@ For the warm-up and then for each target, in chain order:
    its history. Hosts alternate which runs first.
    - `reporter.mjs` records the order files started and each file's and test's
      outcome.
-   - The persisted `faster-sources.json` is read after each run.
+   - The persisted source state (`faster-sources.json` for the fork,
+     `faster-sources.json.br` for the plugin) is read after each run.
 
 ## Comparison
 

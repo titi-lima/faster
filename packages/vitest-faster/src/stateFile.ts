@@ -3,7 +3,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs'
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
 import { dirname, isAbsolute, join, relative, resolve } from 'pathe'
 
-export const FASTER_STATE_FILES = ['faster-sources.json', 'faster-results.json', 'faster-escapes.json']
+export const FASTER_STATE_FILES = ['faster-sources.json.br', 'faster-results.json', 'faster-escapes.json']
 
 export interface FasterStateDir {
   dir: string
@@ -52,8 +52,8 @@ export async function seedFasterStateDir({ dir, seedDirs }: FasterStateDir): Pro
       return
     }
     for (const seedDir of seedDirs) {
-      const contents = await readFile(join(seedDir, name), 'utf8').catch(() => undefined)
-      if (contents) {
+      const contents = await readFile(join(seedDir, name)).catch(() => undefined)
+      if (contents?.length) {
         await writeFasterStateFile(join(dir, name), contents).catch(() => {})
         return
       }
@@ -67,7 +67,7 @@ export async function markFasterStateDirCleared({ dir, seedDirs }: FasterStateDi
   }
 }
 
-export async function writeFasterStateFile(path: string, contents: string): Promise<void> {
+export async function writeFasterStateFile(path: string, contents: string | Uint8Array): Promise<void> {
   await mkdir(dirname(path), { recursive: true })
   const temporaryPath = `${path}.${process.pid}.${randomUUID()}.tmp`
   try {
