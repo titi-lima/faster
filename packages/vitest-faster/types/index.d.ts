@@ -31,6 +31,18 @@ export interface FasterOptions {
    * change Vitest's reporters, so failures are printed by them as usual.
    */
   immediateFailureOutput?: boolean
+  /**
+   * How `selectAffected` treats test files that, in their last run, started a
+   * process or thread, connected to a server outside the test's worker or
+   * loaded a native addon: `'strict'` runs them, `'fast'` skips them when
+   * nothing they import changed. Files they read or check for through `fs`
+   * are hashed and select the test in `'strict'` and `'fast'`. `'off'` neither records nor
+   * uses any of this, as before the option existed. `'auto'` is
+   * `'strict'` when the `CI` environment variable is set, `'fast'` otherwise.
+   *
+   * @default 'auto'
+   */
+  safety?: 'auto' | 'strict' | 'fast' | 'off'
 }
 
 /**

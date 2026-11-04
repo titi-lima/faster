@@ -2,7 +2,7 @@ import type { FasterOptions } from './decision/priorityManifest'
 import { resolve } from 'pathe'
 
 const BOOLEAN_KEYS = new Set(['enabled', 'selectAffected', 'immediateFailureOutput'])
-const VALUE_KEYS = new Set(['optimizeFor', 'priorityFile'])
+const VALUE_KEYS = new Set(['optimizeFor', 'priorityFile', 'safety'])
 const OPTIONAL_VALUE_KEYS = new Set(['changed'])
 
 /**

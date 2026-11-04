@@ -56,3 +56,10 @@ test('readers never see a partially written faster-results.json', async () => {
   }
   expect(unreadable).toBe(0)
 })
+
+test('forgets a deleted test file, which Vitest reports by absolute path', () => {
+  const { results } = createResults(3)
+  const root = roots.at(-1)!
+  results.remove(join(root, 'src/file-1.test.ts'))
+  expect(['src/file-0.test.ts', 'src/file-1.test.ts', 'src/file-2.test.ts'].map(file => results.get(`project:${file}`)?.duration)).toEqual([0, undefined, 2])
+})

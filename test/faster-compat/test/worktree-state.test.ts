@@ -1,13 +1,11 @@
-import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
-import { x } from 'tinyexec'
 import { afterEach, expect, test } from 'vitest'
 import { markFasterStateDirCleared, resolveFasterStateDir, seedFasterStateDir } from '../../../packages/vitest-faster/src/stateFile'
+import { git, runVitest } from './repository'
 
 const compat = resolve(import.meta.dirname, '..')
-const vitestBin = join(compat, 'node_modules/vitest/vitest.mjs')
 const cleanup: string[] = []
 
 afterEach(() => {
@@ -15,10 +13,6 @@ afterEach(() => {
     rmSync(directory, { recursive: true, force: true })
   }
 })
-
-function git(cwd: string, ...args: string[]) {
-  execFileSync('git', ['-c', 'user.name=faster', '-c', 'user.email=faster@test', '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', ...args], { cwd, stdio: 'pipe' })
-}
 
 function createRepository(parent: string, files: Record<string, string>) {
   const main = mkdtempSync(join(parent, 'repository-'))
@@ -35,16 +29,7 @@ function createRepository(parent: string, files: Record<string, string>) {
 }
 
 async function runFaster(root: string): Promise<string[]> {
-  const report = join(root, 'node_modules/.report.json')
-  rmSync(report, { force: true })
-  await x('node', [vitestBin, 'run', '--reporter=json', `--outputFile=${report}`], {
-    nodeOptions: { cwd: root, env: { ...process.env, CI: 'true', NO_COLOR: '1', VITEST_FASTER_OPTIONS: '' } },
-    throwOnError: false,
-  })
-  if (!existsSync(report)) {
-    return []
-  }
-  return JSON.parse(readFileSync(report, 'utf8')).testResults.map((result: { name: string }) => basename(result.name)).sort()
+  return (await runVitest(root, { CI: 'true' })).files
 }
 
 const project = {

@@ -114,10 +114,11 @@ them, so a fork configuration works unchanged once the plugin is added.
 | `selectAffected` | `false` | run only edited, unknown, affected and previously failing files (requires `changed`) |
 | `priorityFile` | `.faster/priorities.json` | optional producer scores, per file or per test (`file::suite::test`) |
 | `immediateFailureOutput` | — | accepted for parity with the fork; the plugin leaves Vitest's reporters unchanged |
+| `safety` | `'auto'` | how selection treats files that left their worker in their last run (see below); `'auto'` is `'strict'` on CI and `'fast'` elsewhere |
 
 CLI flags (with `npx vitest-faster`): `--faster.selectAffected`,
 `--faster.optimizeFor=apfd`, `--faster.changed[=<revision>]`,
-`--faster.priorityFile=<path>`, `--no-faster`. They override every project's
+`--faster.priorityFile=<path>`, `--faster.safety=strict`, `--no-faster`. They override every project's
 options. `VITEST_FASTER_OPTIONS='{"selectAffected":true}'` does the same
 without the wrapper.
 
@@ -164,6 +165,20 @@ A project without the plugin behaves like `faster: false` in the fork.
   history if it has one, and otherwise of the main worktree's.
   Anywhere else they stay in Vitest's cache directory. `vitest --clearCache`
   clears them.
+- **Escapes.** A setup file runs before your own in each worker and records
+  what each test file did outside the worker: processes and threads it
+  started, connections to servers the worker does not run, native addons it
+  loaded outside `node_modules`, and files it read or checked for through
+  `fs`. They go to `faster-escapes.json` next to the history. With
+  `selectAffected`, a test that read a file whose content has changed since
+  runs like an affected one; so does a test that read a file while the run
+  changed it. Tests with the other escapes depend on code the import graph
+  cannot see: `safety: 'strict'` runs them, `safety: 'fast'` skips them when
+  nothing they import changed and lists them. Past 5000 files (or 1000 other
+  escapes) in one test file, the rest count as one such escape. VM pools
+  (`vmThreads`, `vmForks`) bind `fs` before any setup file runs, so there
+  most file reads are not recorded; processes, threads and connections are.
+  `safety: 'off'` removes the setup file and selects by imports alone.
 
 ## Where function-level relevance does not apply
 
