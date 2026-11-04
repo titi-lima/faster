@@ -2,7 +2,7 @@
   "name": "faster-compat-host-fork",
   "type": "module",
   "private": true,
-  "description": "The FASTER fork as users install it: packages/faster packed and installed under the name vitest",
+  "description": "The FASTER fork as the evaluation installed it: packages/faster at a commit of this repository (FASTER_FORK_REF, see scripts/pack-fork.mjs), packed and installed under the name vitest",
   "dependencies": {
     "@vitest/coverage-v8": "4.1.7",
     "vite": "7.1.5",

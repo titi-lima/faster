@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 
-test('prints a failure as soon as it finishes', () => {
+test('fails while FASTER_DEMO_FAIL is set', () => {
   if (process.env.FASTER_DEMO_FAIL) {
     expect({ checkout: 'ready' }).toEqual({ checkout: 'broken' })
   }

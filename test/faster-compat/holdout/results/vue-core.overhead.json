@@ -1,0 +1,157 @@
+{
+  "subject": "vue-core",
+  "file": "packages/reactivity/__tests__/computed.spec.ts",
+  "rounds": 5,
+  "medianMs": {
+    "fork/on": 3316.3863920000003,
+    "plugin/on": 3577.1914909999978,
+    "fork/no-change-tracking": 2468.7682480000003,
+    "plugin/no-change-tracking": 2453.271566999996,
+    "fork/off": 2580.831328,
+    "plugin/off": 2374.0689669999992
+  },
+  "pluginMinusForkMs": {
+    "on": 260.8050989999974,
+    "no-change-tracking": -15.496681000004173,
+    "off": -206.76236100000096
+  },
+  "pluginSortWithSnapshotMs": [
+    992.608189,
+    1305.151983,
+    1088.517823
+  ],
+  "samples": {
+    "fork/on": [
+      {
+        "wallMs": 3831.8276339999998,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 3316.3863920000003,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 3175.307811999999,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 3333.7042780000047,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 3271.0236760000116,
+        "exitCode": 0
+      }
+    ],
+    "plugin/on": [
+      {
+        "wallMs": 3669.419361,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 3553.310010000001,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 3596.616893999999,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 3577.1914909999978,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 3424.214909000002,
+        "exitCode": 0
+      }
+    ],
+    "fork/no-change-tracking": [
+      {
+        "wallMs": 2566.3588990000007,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 2468.7682480000003,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 2417.055330999996,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 3149.5797870000024,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 2200.992511999997,
+        "exitCode": 0
+      }
+    ],
+    "plugin/no-change-tracking": [
+      {
+        "wallMs": 2551.911071999999,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 2467.7094880000004,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 2453.271566999996,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 2443.7919050000055,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 2212.366406000001,
+        "exitCode": 0
+      }
+    ],
+    "fork/off": [
+      {
+        "wallMs": 2554.9994380000007,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 2794.1341409999986,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 2729.3311170000015,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 2197.657578999999,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 2580.831328,
+        "exitCode": 0
+      }
+    ],
+    "plugin/off": [
+      {
+        "wallMs": 2358.795314000001,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 2502.369771999998,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 2359.844612000001,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 2374.0689669999992,
+        "exitCode": 0
+      },
+      {
+        "wallMs": 2503.9548059999943,
+        "exitCode": 0
+      }
+    ]
+  }
+}

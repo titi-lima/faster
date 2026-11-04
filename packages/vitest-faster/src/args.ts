@@ -1,4 +1,4 @@
-import type { FasterOptions } from '../../vitest/src/node/faster/priorityManifest'
+import type { FasterOptions } from './decision/priorityManifest'
 import { resolve } from 'pathe'
 
 const BOOLEAN_KEYS = new Set(['enabled', 'selectAffected', 'immediateFailureOutput'])

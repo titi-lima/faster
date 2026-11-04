@@ -1,6 +1,6 @@
 import type { TestSequencer, TestSequencerConstructor, TestSpecification, Vitest } from 'vitest/node'
 import type { FasterHost } from './host'
-import { FasterSequencer } from '../../vitest/src/node/sequencers/FasterSequencer'
+import { FasterSequencer } from './decision/FasterSequencer'
 
 export interface HostSequencerOptions {
   host: FasterHost

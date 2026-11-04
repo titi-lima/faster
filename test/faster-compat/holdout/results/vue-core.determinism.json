@@ -1,0 +1,57 @@
+{
+  "subject": "vue-core",
+  "repeats": 3,
+  "withinHost": {
+    "fork": [
+      {
+        "runs": [
+          1,
+          2
+        ],
+        "differingTests": {}
+      },
+      {
+        "runs": [
+          2,
+          3
+        ],
+        "differingTests": {}
+      }
+    ],
+    "plugin": [
+      {
+        "runs": [
+          1,
+          2
+        ],
+        "differingTests": {}
+      },
+      {
+        "runs": [
+          2,
+          3
+        ],
+        "differingTests": {}
+      }
+    ]
+  },
+  "acrossHosts": [
+    {
+      "round": 1,
+      "differingTests": {}
+    },
+    {
+      "round": 2,
+      "differingTests": {}
+    },
+    {
+      "round": 3,
+      "differingTests": {}
+    }
+  ],
+  "outcomesEqual": [
+    true,
+    true,
+    true
+  ]
+}

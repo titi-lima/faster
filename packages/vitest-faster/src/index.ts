@@ -1,5 +1,5 @@
 import type { Plugin } from 'vite'
-import type { FasterOptions } from '../../vitest/src/node/faster/priorityManifest'
+import type { FasterOptions } from './decision/priorityManifest'
 import type { FasterLayer } from './host'
 import { getHost, PLUGIN_NAME } from './host'
 

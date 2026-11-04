@@ -1,6 +1,6 @@
 import type { Reporter, RunnerTestFile, TestProject, TestSpecification, Vitest } from 'vitest/node'
-import type { FasterOptions, ResolvedFasterOptions } from '../../vitest/src/node/faster/priorityManifest'
-import type { FasterSourceSnapshots } from '../../vitest/src/node/faster/sourceChanges'
+import type { FasterOptions, ResolvedFasterOptions } from './decision/priorityManifest'
+import type { FasterSourceSnapshots } from './decision/sourceChanges'
 import type { HostSequencerOptions } from './sequencer'
 import { readFileSync } from 'node:fs'
 import { stat } from 'node:fs/promises'
@@ -8,16 +8,16 @@ import { fileURLToPath } from 'node:url'
 import { relative, resolve } from 'pathe'
 import pm from 'picomatch'
 import { BaseSequencer } from 'vitest/node'
-import { GitNotFoundError } from '../../vitest/src/node/errors'
-import { recordFasterFunctionCoverage } from '../../vitest/src/node/faster/functionCoverage'
-import { resolveFasterOptions } from '../../vitest/src/node/faster/priorityManifest'
+import { GitNotFoundError } from './decision/errors'
+import { recordFasterFunctionCoverage } from './decision/functionCoverage'
+import { GitVCSProvider } from './decision/git'
+import { resolveFasterOptions } from './decision/priorityManifest'
 import {
   captureTestRunSourceSnapshots,
   clearFasterSourceSnapshots,
   getTestSourceChanges,
   saveTestRunSourceSnapshots,
-} from '../../vitest/src/node/faster/sourceChanges'
-import { GitVCSProvider } from '../../vitest/src/node/vcs/git'
+} from './decision/sourceChanges'
 import { FasterResults } from './results'
 import { createHostSequencer } from './sequencer'
 

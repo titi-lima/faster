@@ -1,1 +1,3 @@
-export { slash } from '../../../utils/src/helpers'
+export function slash(path: string): string {
+  return path.replace(/\\/g, '/')
+}

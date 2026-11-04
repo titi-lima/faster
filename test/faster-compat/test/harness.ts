@@ -8,8 +8,9 @@ const compatRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 export type HostName = 'fork' | 'vitest-4.0' | 'vitest-4.1' | 'vitest-5'
 
 /**
- * `fork` runs the FASTER fork from this repository, packed as the `faster`
- * package and installed under the name `vitest`. The other hosts are
+ * `fork` runs the FASTER fork, built from a commit of this repository that
+ * still holds it (`scripts/pack-fork.mjs`), packed as the `faster` package
+ * and installed under the name `vitest`. The other hosts are
  * standalone installs of upstream Vitest releases with the packed
  * `vitest-faster` plugin (see `scripts/install-hosts.mjs`).
  */
