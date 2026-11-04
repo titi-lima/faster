@@ -1,29 +1,31 @@
 import { execFileSync } from 'node:child_process'
-import { mkdirSync, readdirSync, renameSync, rmSync } from 'node:fs'
+import { copyFileSync, mkdirSync, readdirSync, renameSync, rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { packFork } from './pack-fork.mjs'
 
-// Each host is a standalone install of an upstream Vitest release. The
-// workspace forces `vitest` to the fork, so hosts ignore the workspace and
-// install the plugin from its packed tarball, as a user would from npm.
+// Each host is a standalone install outside the workspace, as a user would
+// install from npm: an upstream Vitest release with the packed plugin, or the
+// fork, built from a commit of this repository and installed as `vitest`.
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const pack = join(root, '.pack')
 rmSync(pack, { recursive: true, force: true })
 mkdirSync(pack, { recursive: true })
-// The fork is installed from its publishable package, `faster`, so that like
-// upstream Vitest it lives under node_modules. Both packages must be built.
-for (const [name, directory] of [['vitest-faster', 'vitest-faster'], ['faster', 'faster']]) {
-  const destination = join(pack, name)
-  mkdirSync(destination)
-  execFileSync('pnpm', ['pack', '--pack-destination', destination], {
-    cwd: join(root, '../../packages', directory),
-    stdio: 'inherit',
-    env: { ...process.env, npm_config_ignore_scripts: 'true' },
-  })
-  const [tarball] = readdirSync(destination)
-  renameSync(join(destination, tarball), join(pack, `${name}.tgz`))
-  rmSync(destination, { recursive: true })
-}
+
+const destination = join(pack, 'vitest-faster')
+mkdirSync(destination)
+execFileSync('pnpm', ['pack', '--pack-destination', destination], {
+  cwd: join(root, '../../packages/vitest-faster'),
+  stdio: 'inherit',
+  env: { ...process.env, npm_config_ignore_scripts: 'true' },
+})
+const [tarball] = readdirSync(destination)
+renameSync(join(destination, tarball), join(pack, 'vitest-faster.tgz'))
+rmSync(destination, { recursive: true })
+
+const fork = packFork()
+copyFileSync(fork.tarball, join(pack, 'faster.tgz'))
+console.log(`Fork host: ${fork.commit}`)
 
 const hosts = join(root, 'hosts')
 for (const host of readdirSync(hosts)) {

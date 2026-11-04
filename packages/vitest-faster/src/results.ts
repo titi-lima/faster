@@ -1,7 +1,8 @@
 import type { RunnerTestFile } from 'vitest/node'
-import type { FasterStateFile } from '../../vitest/src/node/faster/stateFile'
-import { relative } from 'pathe'
-import { clearFasterStateFile, readFasterStateFile, resolveFasterStateFile, writeFasterStateFile } from '../../vitest/src/node/faster/stateFile'
+import { existsSync } from 'node:fs'
+import { readFile, rm } from 'node:fs/promises'
+import { relative, resolve } from 'pathe'
+import { writeFasterStateFile } from './stateFile'
 
 export interface FileResult {
   failed: boolean
@@ -17,12 +18,12 @@ const VERSION = 'vitest-faster-1'
  */
 export class FasterResults {
   private results = new Map<string, FileResult>()
-  private file: FasterStateFile | undefined
+  private path: string | undefined
   private root = '/'
 
-  configure(root: string, cacheDir: string | undefined): void {
+  configure(root: string, stateDir: string | undefined): void {
     this.root = root
-    this.file = cacheDir ? resolveFasterStateFile(root, cacheDir, 'faster-results.json') : undefined
+    this.path = stateDir ? resolve(stateDir, 'faster-results.json') : undefined
   }
 
   get(key: string): FileResult | undefined {
@@ -30,12 +31,11 @@ export class FasterResults {
   }
 
   async read(): Promise<void> {
-    const contents = this.file && await readFasterStateFile(this.file)
-    if (!contents) {
+    if (!this.path || !existsSync(this.path)) {
       return
     }
     try {
-      const { version, results } = JSON.parse(contents)
+      const { version, results } = JSON.parse(await readFile(this.path, 'utf8'))
       if (version === VERSION && Array.isArray(results)) {
         this.results = new Map(results)
       }
@@ -66,15 +66,16 @@ export class FasterResults {
   }
 
   async write(): Promise<void> {
-    if (this.file) {
-      await writeFasterStateFile(this.file.path, JSON.stringify({ version: VERSION, results: [...this.results] }))
+    if (!this.path) {
+      return
     }
+    await writeFasterStateFile(this.path, JSON.stringify({ version: VERSION, results: [...this.results] }))
   }
 
   async clear(): Promise<void> {
     this.results.clear()
-    if (this.file) {
-      await clearFasterStateFile(this.file)
+    if (this.path) {
+      await rm(this.path, { force: true })
     }
   }
 }

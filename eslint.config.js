@@ -2,39 +2,21 @@ import antfu, { GLOB_SRC } from '@antfu/eslint-config'
 
 export default antfu(
   {
-    vue: true,
     // Disable tests rules because we need to test with various setup
     test: false,
-    // This replaces the old `.gitignore`
     ignores: [
       '**/coverage',
       '**/*.snap',
-      '**/bench.json',
       '**/fixtures',
-      '**/assets/**',
       '**/*.d.ts',
       '**/*.timestamp-*',
       'research/work/**',
       'research/artifacts/**',
-      'test/core/src/self',
-      'test/core/test/mocking/already-hoisted.test.ts',
-      'test/cache/cache/.vitest-base/results.json',
-      'test/core/src/wasm/wasm-bindgen-no-cyclic',
-      'test/workspaces/results.json',
-      'test/workspaces-browser/results.json',
-      'test/reporters/fixtures/with-syntax-error.test.js',
-      'test/network-imports/public/slash@3.0.0.js',
-      'test/coverage-test/src/transpiled.js',
-      'test/coverage-test/src/original.ts',
-      'test/cli/deps/error/*',
-      'examples/**/mockServiceWorker.js',
-      'examples/sveltekit/.svelte-kit',
-      'packages/browser/**/esm-client-injector.js',
-      // contains technically invalid code to display pretty diff
-      'docs/guide/snapshot.md',
-      // uses invalid js example
-      'docs/api/advanced/import-example.md',
-      'docs/guide/examples/*.md',
+      'test/faster-compat/holdout/results/**',
+      'test/faster-compat/holdout/.work/**',
+      'test/faster-compat/hosts/**',
+      'test/faster-compat/.pack/**',
+      'test/faster-compat/.fork/**',
     ],
   },
   {
@@ -59,13 +41,7 @@ export default antfu(
       'eslint-comments/no-unlimited-disable': 'off',
       'curly': ['error', 'all'],
 
-      // TODO: migrate and turn it back on
-      'ts/ban-types': 'off',
-      'ts/no-unsafe-function-type': 'off',
-
       'markdown/fenced-code-language': 'off',
-      // it uses parser which is not compatible with vitepress
-      'markdown/no-missing-link-fragments': 'off',
 
       'no-restricted-imports': [
         'error',
@@ -78,61 +54,25 @@ export default antfu(
     },
   },
   {
-    files: [`packages/*/*.{js,mjs,d.ts}`],
+    // The decision code stays byte-identical to the evaluated fork except for
+    // its module specifiers (see src/decision/README.md), so the rules that
+    // reorder or merge imports by specifier must not touch it.
+    files: [`packages/vitest-faster/src/decision/${GLOB_SRC}`],
     rules: {
-      'antfu/no-import-dist': 'off',
-    },
-  },
-  {
-    files: [`packages/${GLOB_SRC}`],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: ['vitest', 'path', 'vitest/node'],
-        },
-      ],
-    },
-  },
-  {
-    // these files define vitest as peer dependency
-    files: [`packages/{coverage-*,ui,browser,web-worker,browser-*,vitest-faster}/${GLOB_SRC}`],
-    rules: {
-      'no-restricted-imports': [
-        'error',
-        {
-          paths: ['path'],
-        },
-      ],
+      'perfectionist/sort-imports': 'off',
+      'perfectionist/sort-named-imports': 'off',
+      'import/no-duplicates': 'off',
     },
   },
   {
     files: [
-      `docs/${GLOB_SRC}`,
       `**/*.md`,
       `**/*.md/${GLOB_SRC}`,
     ],
     rules: {
-      'prefer-arrow-callback': 'off',
       'perfectionist/sort-imports': 'off',
-      'style/max-statements-per-line': 'off',
-      'import/newline-after-import': 'off',
       'import/first': 'off',
       'unused-imports/no-unused-imports': 'off',
-      'ts/method-signature-style': 'off',
-      'no-self-compare': 'off',
-      'import/no-mutable-exports': 'off',
-      'no-throw-literal': 'off',
-    },
-  },
-  {
-    files: [
-      `docs/${GLOB_SRC}`,
-      `packages/web-worker/${GLOB_SRC}`,
-      `test/core/${GLOB_SRC}`,
-    ],
-    rules: {
-      'no-restricted-globals': 'off',
     },
   },
   {

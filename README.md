@@ -1,146 +1,157 @@
-<p align="center">
-  <br>
-  <br>
-  <a href="https://vitest.dev" target="_blank" rel="noopener noreferrer">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="https://vitest.dev/vitest-light.svg">
-      <source media="(prefers-color-scheme: light)" srcset="https://vitest.dev/vitest-dark.svg">
-      <img alt="Vitest logo" src="https://vitest.dev/vitest-dark.svg" height="60">
-    </picture>
-  </a>
-  <br>
-  <br>
-  <br>
-</p>
+# vitest-faster
 
-<h1 align="center">
-Faster
-</h1>
-<p align="center">
-An API-compatible Vitest fork with function-aware selection, test prioritization and immediate failure feedback.
-<p>
-<p align="center">
-  <a href="https://npmx.dev/package/faster"><img src="https://img.shields.io/npm/v/faster?color=729B1B&label=" alt="current Faster version badge"></a>
-<p>
+FASTER test prioritization and selection for upstream Vitest 4.0, 4.1 and 5,
+as a Vite plugin.
 
-<p align="center">
-<a href="https://chat.vitest.dev"><b>Get involved!</b></a>
-</p>
-<p align="center">
- <a href="https://vitest.dev">Documentation</a> | <a href="https://vitest.dev/guide/">Getting Started</a> | <a href="https://vitest.dev/guide/#examples">Examples</a> | <a href="https://vitest.dev/guide/why">Why Vitest?</a>
-</p>
-<p align="center">
-<a href="https://cn.vitest.dev">中文文档</a>
-</p>
+FASTER started as a fork of Vitest. This repository now holds only the plugin,
+which runs the fork's decision code unchanged on Vitest's public extension
+points, and the suite that shows the plugin makes the fork's decisions.
 
-<h4 align="center">
+## What it does
 
-</h4>
-<br>
-<br>
+On every run, FASTER orders the test files and, if you ask it to, runs only
+some of them. It decides from what it recorded in earlier runs:
 
-## Features
+- **Failures.** Files that failed in the previous run go first. With the
+  default `optimizeFor: 'dx'`, a failure in a file whose test and sources did
+  not change goes last instead, since rerunning it first would only repeat
+  what you already know. `optimizeFor: 'apfd'` keeps every failure first.
+- **Changes.** Among failing files and among the others, new files and files
+  whose test changed go first, then files affected by a changed source. For isolated Node projects with V8 coverage,
+  "affected" is decided per function: a test is affected only if it called a
+  function whose body changed since its previous run. Elsewhere any change to
+  an imported module counts.
+- **Producer scores.** An optional `.faster/priorities.json` gives scores per
+  file or per test. Within each of those groups, scored files go first, highest
+  score first; the scores also order the tests within a file.
+- **Cost.** Ties are broken by a score that weighs the previous duration most
+  and the file size less, highest first.
+- **Selection.** With `selectAffected: true`, only edited, affected, unknown
+  and previously failing test files run.
 
-For the prioritization strategy, benchmark methodology and reproducible results,
-see the [research workspace](./research/README.md).
+FASTER keeps its history in Vitest's cache directory, next to Vitest's own.
 
-- Changed function bodies are matched to recorded test callers and scheduled first.
-- Shared failure/change buckets and history/size scores prioritize test files; DX defers unchanged, unaffected known failures.
-- Optional `.faster/priorities.json` scores override the built-in order when richer producer signals are available.
-- Failures, captured output, diffs, and stacks are printed as soon as each failing test finishes.
-- Vitest's public test, config, plugin, reporter, and CLI APIs remain available for low-friction migration.
-- [Vite](https://vitejs.dev/)'s config, transformers, resolvers, and plugins. Use the same setup from your app!
-- [Jest Snapshot](https://jestjs.io/docs/snapshot-testing)
-- [Chai](https://www.chaijs.com/) built-in for assertions, with [Jest expect](https://jestjs.io/docs/expect) compatible APIs
-- [Smart & instant watch mode](https://vitest.dev/guide/features.html#watch-mode), like HMR for tests!
-- [Native code coverage](https://vitest.dev/guide/features.html#coverage) via [`v8`](https://v8.dev/blog/javascript-code-coverage) or [`istanbul`](https://istanbul.js.org/).
-- Jest-compatible mocking, stubbing, and spies.
-- [JSDOM](https://github.com/jsdom/jsdom) and [happy-dom](https://github.com/capricorn86/happy-dom) for DOM and browser API mocking
-- [Browser Mode](https://vitest.dev/guide/browser/) for running component tests in the browser
-- Components testing ([Vue](https://github.com/vitest-tests/browser-examples/tree/main/examples/vue), [React](https://github.com/vitest-tests/browser-examples/tree/main/examples/react), [Svelte](https://github.com/vitest-tests/browser-examples/tree/main/examples/svelte), [Lit](./examples/lit), [Marko](https://github.com/marko-js/examples/tree/master/examples/library-ts))
-- Benchmarking support with [Tinybench](https://github.com/tinylibs/tinybench)
-- [Projects](https://vitest.dev/guide/projects) support
-- [expect-type](https://github.com/mmkal/expect-type) for type-level testing
-- ESM first, top level await
-- Out-of-box TypeScript / JSX support
-- Filtering, timeouts, concurrent for suite and tests
-- Sharding support
-- Reporting Uncaught Errors
-- Run your tests in the browser natively
+## Setup
 
-> Vitest requires Vite >=v6.0.0 and Node >=v20.0.0
+`vitest-faster` is not on npm yet. Build and pack it from this repository:
+
+```bash
+pnpm install && pnpm build
+pnpm -C packages/vitest-faster pack
+```
+
+Then install the tarball together with the V8 coverage provider of your
+Vitest version, which FASTER uses for function-level relevance:
+
+| Your Vitest | Install | Notes |
+| --- | --- | --- |
+| 5.x | `npm i -D ./vitest-faster-0.1.0.tgz @vitest/coverage-v8@5` | |
+| 4.1.x | `npm i -D ./vitest-faster-0.1.0.tgz @vitest/coverage-v8@4.1` | |
+| 4.0.x | `npm i -D ./vitest-faster-0.1.0.tgz @vitest/coverage-v8@4.0` | no `experimental.vcsProvider`, so `changed: '<revision>'` always uses Git |
+| 3.x and older | not supported | the plugin stops with an error |
+
+On Vitest 3, tests run through vite-node, where FASTER records no function
+observations and would silently fall back to dependency-level relevance. The
+plugin refuses to run there rather than degrade.
+
+The configuration is the same for every supported version:
 
 ```ts
-import { assert, describe, expect, it } from 'faster'
+// vitest.config.ts
+import { defineConfig } from 'vitest/config'
+import { faster } from 'vitest-faster'
 
-describe('suite name', () => {
-  it('foo', () => {
-    expect(1 + 1).toEqual(2)
-    expect(true).to.be.true
-  })
-
-  it('bar', () => {
-    assert.equal(Math.sqrt(4), 2)
-  })
-
-  it('snapshot', () => {
-    expect({ foo: 'bar' }).toMatchSnapshot()
-  })
+export default defineConfig({
+  plugins: [faster({ selectAffected: true })],
 })
 ```
 
+Run Vitest as usual. To pass FASTER options on the command line, run
+`npx vitest-faster` instead, which accepts `--faster.selectAffected`,
+`--faster.optimizeFor=apfd`, `--faster.changed[=<revision>]`,
+`--faster.priorityFile=<path>` and `--no-faster` and hands everything else to
+Vitest.
+
+[`packages/vitest-faster/README.md`](./packages/vitest-faster/README.md)
+lists every option, how the plugin behaves with projects, coverage, custom
+sequencers and runners, and where function-level relevance does not apply.
+[`examples/faster-demo`](./examples/faster-demo) is a small project that makes
+the ordering visible.
+
+## How we check that the plugin is the fork
+
+The plugin is meant to be the code the FASTER evaluation ran, not a
+reimplementation. Three checks back that up.
+
+### The decision code is the fork's
+
+`packages/vitest-faster/src/decision` holds the fork's decision code: the
+ordering, selection, change and function-level relevance, and per-test
+ordering. These files were moved from the fork's `packages/vitest` and
+`packages/runner` and differ from them only in the module specifiers of their
+imports.
+
 ```bash
-$ npx faster
+pnpm check:decision-code
 ```
 
-The package also exposes a `vitest` binary alias. Existing Vitest configuration and test files continue to work while you migrate imports incrementally.
+compares every file with its origin at `3e78239dc`, the last commit that
+holds the fork, and lists each changed specifier. `FASTER_FORK_REF` or an
+argument picks another commit. `test/faster-compat` runs the same check.
 
-## Sponsors
+### The plugin makes the fork's decisions
 
-<p align="center">
-  <a href="https://cdn.jsdelivr.net/gh/sheremet-va/static/vitest/sponsors.svg">
-    <img src='https://cdn.jsdelivr.net/gh/sheremet-va/static/vitest/sponsors.svg' alt="vitest's sponsors"/>
-  </a>
-</p>
+`test/faster-compat` runs the same scenarios on five standalone installs
+under `hosts/`, set up outside the workspace as a user would install them:
 
-### Vladimir Sponsors
+- `fork`: the fork, built from `3e78239dc` (or `FASTER_FORK_REF`) by
+  `scripts/pack-fork.mjs` in a temporary directory and installed as `vitest`;
+- `vitest-4.0`, `vitest-4.1`, `vitest-5`: Vitest 4.0.18, 4.1.7 and 5.0.5 with
+  the packed plugin;
+- `vitest-3.2`: Vitest 3.2.7 with the plugin, which must refuse to run.
 
-<p align="center">
-  <a href="https://cdn.jsdelivr.net/gh/sheremet-va/static/sponsors.svg">
-    <img src='https://cdn.jsdelivr.net/gh/sheremet-va/static/sponsors.svg' alt="vladimir's sponsors"/>
-  </a>
-</p>
+Each scenario writes a small project, then runs a sequence of steps against
+it: cold runs, edits to called and uncalled functions, edits to tests, new and
+failing tests, projects with different isolation, producer scores, Git
+revisions, user coverage, sharding and CLI flags. After every step the suite
+compares each plugin host with the fork:
 
-### Anthony Fu Sponsors
+- the test files and tests that ran, in the order they started;
+- the exit code;
+- FASTER's persisted state, with structural hashes replaced by ordinals
+  because they embed each install's paths;
+- whether coverage reports were written.
 
-<p align="center">
-  <a href="https://cdn.jsdelivr.net/gh/antfu/static/sponsors.svg">
-    <img src='https://cdn.jsdelivr.net/gh/antfu/static/sponsors.svg' alt="anthony's sponsors"/>
-  </a>
-</p>
+```bash
+pnpm install && pnpm build
+pnpm test
+```
 
-### Patak Sponsors
+The first run builds the fork, which takes a few minutes and needs Node
+^20.19.0 or >=22.12.0; later runs reuse the tarball cached in
+`test/faster-compat/.fork`.
 
-<p align="center">
-  <a href="https://cdn.jsdelivr.net/gh/patak-dev/static/sponsors.svg">
-    <img src='https://cdn.jsdelivr.net/gh/patak-dev/static/sponsors.svg' alt="patak's sponsors"/>
-  </a>
-</p>
+### The same holds on real commits
 
-## Credits
+`test/faster-compat/holdout` replays 10 real revisions of Vue core and VueUse
+through the fork and through Vitest 4.1.7 with the plugin. It compares the
+selected files, the full and selected orders, per-file outcomes, persisted
+state and run time. It clones the subjects and installs every revision, so it
+is not part of `pnpm test`; see its
+[README](./test/faster-compat/holdout/README.md) for how to run it and what
+it found.
 
-Thanks to:
+## Repository layout
 
-- [The Jest team and community](https://jestjs.io/) for creating a delightful testing API
-- [@lukeed](https://github.com/lukeed) for the work on [uvu](https://github.com/lukeed/uvu) where we are inspired a lot from.
-- [@pi0](https://github.com/pi0) for the idea and implementation of using Vite to transform and bundle the server code.
-- [The Vite team](https://github.com/vitejs/vite) for brainstorming the initial idea.
-- [@patak-dev](https://github.com/patak-dev) for the awesome package name!
-
-## Contribution
-
-See [Contributing Guide](https://github.com/vitest-dev/vitest/blob/main/CONTRIBUTING.md).
+- `packages/vitest-faster`: the plugin.
+- `test/faster-compat`: the equivalence suite, its hosts and the holdout
+  replay.
+- `examples/faster-demo`: a demo project.
+- `research`: the research workspace of the FASTER paper. Its experiments ran
+  on the fork; run them from a commit that still holds it, such as
+  `3e78239dc`.
 
 ## License
 
-[MIT](./LICENSE) License © 2021-Present VoidZero Inc. and Vitest contributors
+[MIT](./LICENSE). The decision code comes from the FASTER fork of Vitest,
+© VoidZero Inc. and Vitest contributors.

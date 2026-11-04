@@ -1,6 +1,6 @@
 import type { RunnerTestSuite } from 'vitest'
 import * as vitest from 'vitest'
-import { prioritizeTasks } from '../../runner/src/utils/priority'
+import { prioritizeTasks } from './decision/priority'
 
 // Vitest 4.0 exports the default runner only from `vitest/runners`; the class must exist when the module loads.
 // eslint-disable-next-line antfu/no-top-level-await

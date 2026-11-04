@@ -1,0 +1,158 @@
+{
+  "subject": "vueuse",
+  "revision": "c02abdeeca573ac871790eae7c3bb7ce9c7da9eb",
+  "repeats": 5,
+  "sets": {
+    "selected": [
+      "packages/core/onClickOutside/directive.test.ts",
+      "packages/core/onKeyStroke/directive.test.ts",
+      "packages/core/onLongPress/directive.test.ts",
+      "packages/core/useClipboard/index.test.ts",
+      "packages/core/useCssVar/index.test.ts",
+      "packages/core/useDraggable/index.test.ts",
+      "packages/core/useElementBounding/directive.test.ts",
+      "packages/core/useElementHover/directive.test.ts",
+      "packages/core/useElementSize/directive.test.ts",
+      "packages/core/useElementVisibility/directive.test.ts",
+      "packages/core/useInfiniteScroll/directive.test.ts",
+      "packages/core/useIntersectionObserver/directive.test.ts",
+      "packages/core/useMouseInElement/directive.test.ts",
+      "packages/core/useVibrate/index.test.ts",
+      "packages/core/useWebSocket/index.test.ts",
+      "packages/integrations/useIDBKeyval/index.test.ts"
+    ],
+    "single": [
+      "packages/core/onClickOutside/directive.test.ts"
+    ]
+  },
+  "runs": {
+    "selected": {
+      "files": 16,
+      "samples": {
+        "fork": [
+          {
+            "wallMs": 41157.505882999976,
+            "exitCode": 0,
+            "files": 16
+          },
+          {
+            "wallMs": 42924.41612499999,
+            "exitCode": 0,
+            "files": 16
+          },
+          {
+            "wallMs": 41558.43089800002,
+            "exitCode": 0,
+            "files": 16
+          },
+          {
+            "wallMs": 40235.164355000015,
+            "exitCode": 0,
+            "files": 16
+          },
+          {
+            "wallMs": 41439.517975999974,
+            "exitCode": 0,
+            "files": 16
+          }
+        ],
+        "plugin": [
+          {
+            "wallMs": 41327.50912000006,
+            "exitCode": 0,
+            "files": 16
+          },
+          {
+            "wallMs": 42654.48175100004,
+            "exitCode": 0,
+            "files": 16
+          },
+          {
+            "wallMs": 42162.720319999964,
+            "exitCode": 0,
+            "files": 16
+          },
+          {
+            "wallMs": 39768.55470099999,
+            "exitCode": 0,
+            "files": 16
+          },
+          {
+            "wallMs": 42500.37268199993,
+            "exitCode": 0,
+            "files": 16
+          }
+        ]
+      },
+      "medianMs": {
+        "fork": 41439.517975999974,
+        "plugin": 42162.720319999964
+      },
+      "pluginOverFork": 1.0174519970145126
+    },
+    "single": {
+      "files": 1,
+      "samples": {
+        "fork": [
+          {
+            "wallMs": 6481.686107000103,
+            "exitCode": 0,
+            "files": 1
+          },
+          {
+            "wallMs": 6099.544330999954,
+            "exitCode": 0,
+            "files": 1
+          },
+          {
+            "wallMs": 5918.993307000026,
+            "exitCode": 0,
+            "files": 1
+          },
+          {
+            "wallMs": 6104.049640000099,
+            "exitCode": 0,
+            "files": 1
+          },
+          {
+            "wallMs": 5976.55572799989,
+            "exitCode": 0,
+            "files": 1
+          }
+        ],
+        "plugin": [
+          {
+            "wallMs": 7069.300086000003,
+            "exitCode": 0,
+            "files": 1
+          },
+          {
+            "wallMs": 6893.47876099986,
+            "exitCode": 0,
+            "files": 1
+          },
+          {
+            "wallMs": 7555.152532999869,
+            "exitCode": 0,
+            "files": 1
+          },
+          {
+            "wallMs": 7249.904616000131,
+            "exitCode": 0,
+            "files": 1
+          },
+          {
+            "wallMs": 7542.880303999875,
+            "exitCode": 0,
+            "files": 1
+          }
+        ]
+      },
+      "medianMs": {
+        "fork": 6099.544330999954,
+        "plugin": 7249.904616000131
+      },
+      "pluginOverFork": 1.1885977414990914
+    }
+  }
+}

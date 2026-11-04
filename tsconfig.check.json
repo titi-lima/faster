@@ -2,25 +2,18 @@
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
     "types": [
-      "node",
-      "vite/client"
+      "node"
     ]
   },
+  "include": [
+    "./packages/vitest-faster/src/**/*.ts",
+    "./packages/vitest-faster/types/**/*.d.ts",
+    "./test/faster-compat/test/**/*.ts",
+    "./examples/faster-demo/**/*.ts"
+  ],
   "exclude": [
     "**/dist/**",
-    "./packages/vitest/dist/**",
-    "./packages/ui/**/*.spec.ts",
-    "./packages/ui/client/test.ts",
-    "./packages/*/*.d.ts",
-    "./packages/*/*.d.cts",
-    "./examples/**/*.*",
-    "./bench/**",
-    "./research/work/**",
-    "./research/artifacts/**",
-    "./test/cli/**",
-    "./test/typescript/**",
-    "./test/browser/**",
-    "**/coverage/fixtures/**",
-    "./test/watch/fixtures/**"
+    "**/node_modules/**",
+    "./test/faster-compat/hosts/**"
   ]
 }
