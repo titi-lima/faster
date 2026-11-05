@@ -1,11 +1,10 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { basename, join, resolve } from 'node:path'
+import { basename, join } from 'node:path'
 import { afterEach, expect, test } from 'vitest'
 import { markFasterStateDirCleared, resolveFasterStateDir, seedFasterStateDir } from '../../../packages/vitest-faster/src/stateFile'
-import { git, runVitest } from './repository'
+import { createRepository, git, runVitest } from './repository'
 
-const compat = resolve(import.meta.dirname, '..')
 const cleanup: string[] = []
 
 afterEach(() => {
@@ -14,17 +13,10 @@ afterEach(() => {
   }
 })
 
-function createRepository(parent: string, files: Record<string, string>) {
-  const main = mkdtempSync(join(parent, 'repository-'))
+function createWorktrees(files: Record<string, string>) {
+  const main = createRepository('repository-', files)
   const worktree = `${main}-worktree`
-  cleanup.push(main, worktree)
-  for (const [file, content] of Object.entries(files)) {
-    mkdirSync(join(main, file, '..'), { recursive: true })
-    writeFileSync(join(main, file), content)
-  }
-  git(main, 'init', '-q')
-  git(main, 'add', '.')
-  git(main, 'commit', '-qm', 'init')
+  cleanup.push(worktree)
   return { main, worktree }
 }
 
@@ -42,9 +34,7 @@ const project = {
 }
 
 test('a new worktree starts from the main worktree\'s history and keeps its own afterwards', async () => {
-  const fixtures = join(compat, 'fixtures')
-  mkdirSync(fixtures, { recursive: true })
-  const { main, worktree } = createRepository(fixtures, project)
+  const { main, worktree } = createWorktrees(project)
 
   expect(await runFaster(main)).toEqual(['broken.test.js', 'left.test.js', 'right.test.js'])
   expect(await runFaster(main)).toEqual(['broken.test.js'])
@@ -61,6 +51,32 @@ test('a new worktree starts from the main worktree\'s history and keeps its own 
 
   git(main, 'worktree', 'remove', '--force', worktree)
   expect(existsSync(worktreeState)).toBe(false)
+})
+
+test('deletes the uncompressed history of earlier versions in this worktree only', async () => {
+  const { main, worktree } = createWorktrees(project)
+  await runFaster(main)
+  git(main, 'worktree', 'add', '-q', worktree)
+  const [hash] = readdirSync(join(main, '.git/faster/node_modules/.vite/vitest'))
+  const legacy = {
+    'main state': join(main, '.git/faster/node_modules/.vite/vitest', hash),
+    'worktree cache': join(worktree, 'node_modules/.vite/vitest', hash),
+    'worktree state': join(main, '.git/worktrees', basename(worktree), 'faster/node_modules/.vite/vitest', hash),
+  }
+  for (const directory of Object.values(legacy)) {
+    mkdirSync(directory, { recursive: true })
+    writeFileSync(join(directory, 'faster-sources.json'), '{"version":1,"tests":{}}')
+  }
+
+  await runFaster(worktree)
+  expect(Object.fromEntries(Object.entries(legacy).map(([name, directory]) => [name, existsSync(join(directory, 'faster-sources.json'))]))).toMatchInlineSnapshot(`
+    {
+      "main state": true,
+      "worktree cache": false,
+      "worktree state": false,
+    }
+  `)
+  expect(existsSync(join(legacy['worktree state'], 'faster-sources.json.br'))).toBe(true)
 })
 
 test('locates history in the worktree\'s Git directory only at the top of a worktree', () => {
@@ -106,18 +122,20 @@ test('copies the first history it finds once and never over a cleared one', asyn
   mkdirSync(main, { recursive: true })
   writeFileSync(join(own, 'faster-results.json'), 'own results')
   writeFileSync(join(main, 'faster-results.json'), 'main results')
-  writeFileSync(join(main, 'faster-sources.json'), 'main sources')
+  // The sources are compressed, so they are copied as bytes.
+  const sources = Buffer.from([0x0B, 0xFF, 0x80, 0x00, 0xC3])
+  writeFileSync(join(main, 'faster-sources.json.br'), sources)
 
   await seedFasterStateDir(location)
   expect(readFileSync(join(location.dir, 'faster-results.json'), 'utf8')).toBe('own results')
-  expect(readFileSync(join(location.dir, 'faster-sources.json'), 'utf8')).toBe('main sources')
+  expect(readFileSync(join(location.dir, 'faster-sources.json.br'))).toEqual(sources)
 
-  writeFileSync(join(main, 'faster-sources.json'), 'newer main sources')
+  writeFileSync(join(main, 'faster-sources.json.br'), 'newer main sources')
   await seedFasterStateDir(location)
-  expect(readFileSync(join(location.dir, 'faster-sources.json'), 'utf8')).toBe('main sources')
+  expect(readFileSync(join(location.dir, 'faster-sources.json.br'))).toEqual(sources)
 
   await markFasterStateDirCleared(location)
   await seedFasterStateDir(location)
-  expect(readFileSync(join(location.dir, 'faster-sources.json'), 'utf8')).toBe('')
+  expect(readFileSync(join(location.dir, 'faster-sources.json.br'), 'utf8')).toBe('')
   expect(readFileSync(join(location.dir, 'faster-results.json'), 'utf8')).toBe('')
 })

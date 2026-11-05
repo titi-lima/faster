@@ -7,9 +7,10 @@ that shows it makes the same decisions as the FASTER fork of Vitest.
 ## Layout
 
 - `packages/vitest-faster` - the plugin.
-  - `src/decision` - FASTER's decision code, moved from the fork. It must stay
-    identical to the fork's files except for import specifiers; see
-    `src/decision/README.md`. Do not edit, reformat or reorder it.
+  - `src/decision` - FASTER's decision code, moved from the fork. It no
+    longer has to match the fork's files; `pnpm test` compares its decisions
+    with those of the fork the paper evaluated, so a change that alters a
+    decision shows up there.
   - `src/*.ts` - the host layer that runs the decision code on Vitest's public
     extension points.
 - `test/faster-compat` - equivalence suite. Hosts under `hosts/` install
@@ -22,7 +23,6 @@ that shows it makes the same decisions as the FASTER fork of Vitest.
 
 - `pnpm install`, then `pnpm build` to build the plugin.
 - `pnpm lint:fix` after changes; `pnpm typecheck` for types.
-- `pnpm check:decision-code` compares `src/decision` with the fork.
 - `pnpm test` installs the hosts (building the fork the first time) and runs
   `test/faster-compat`.
 

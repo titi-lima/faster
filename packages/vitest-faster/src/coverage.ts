@@ -4,6 +4,12 @@ import { resolve } from 'pathe'
 import { importV8Provider } from './v8'
 
 const REGISTRY = Symbol.for('vitest-faster.hosts')
+/**
+ * Set by the node-side provider in this Vitest's `env` when no coverage
+ * report is written, so the coverage collected in workers only feeds FASTER.
+ * Vitest passes `env` to every worker it starts.
+ */
+export const FUNCTION_COVERAGE_ENV = 'VITEST_FASTER_FUNCTION_COVERAGE'
 
 let workerModule: Promise<CoverageProviderModule> | undefined
 
@@ -16,9 +22,39 @@ function v8(): Promise<CoverageProviderModule> {
   return workerModule
 }
 
+/**
+ * FASTER reads only the first range V8 reports for each function: where the
+ * function is and whether it ran. V8 reports that same range without block
+ * coverage, which costs workers less and sends a fraction of the data. The
+ * user's provider still starts V8; only its request for block coverage is
+ * turned off, while it starts, and only when no report needs blocks.
+ */
+export async function startFunctionCoverage(start: () => unknown): Promise<unknown> {
+  const sessions = await Promise.all([import('node:inspector/promises'), import('node:inspector')])
+  const prototypes = sessions.map(module => (module.default ?? module).Session.prototype as { post: (...args: any[]) => unknown })
+  const posts = prototypes.map(prototype => prototype.post)
+  prototypes.forEach((prototype, index) => {
+    const post = posts[index]
+    prototype.post = function (this: unknown, method: string, params?: object, ...rest: unknown[]) {
+      return post.call(this, method, method === 'Profiler.startPreciseCoverage' ? { ...params, detailed: false } : params, ...rest)
+    }
+  })
+  try {
+    return await start()
+  }
+  finally {
+    prototypes.forEach((prototype, index) => {
+      prototype.post = posts[index]
+    })
+  }
+}
+
 const mod: CoverageProviderModule = {
   async startCoverage(options) {
-    return (await v8()).startCoverage?.(options)
+    const v8Module = await v8()
+    return process.env[FUNCTION_COVERAGE_ENV] === '1'
+      ? startFunctionCoverage(() => v8Module.startCoverage?.(options))
+      : v8Module.startCoverage?.(options)
   },
   async takeCoverage(options) {
     return (await v8()).takeCoverage?.(options)
@@ -53,13 +89,16 @@ class FasterCoverageProvider implements CoverageProvider {
     const reportless = role?.ownsCoverage
       && !(vitest as any).configOverride?.coverage
       && vitest.projects.every(project => !project.isBrowserEnabled())
+    const env: Record<string, string> = ((vitest.config as any).env ??= {})
     if (role && (!role.rootEnabled || reportless)) {
+      env[FUNCTION_COVERAGE_ENV] = '1'
       // Vitest 5 workers write coverage files here; the V8 provider would create it.
       const coverage: any = vitest.config.coverage
       const shard = vitest.config.shard
       this.filesDirectory = resolve(vitest.config.root, coverage.reportsDirectory, `.tmp${shard ? `-${shard.index}-${shard.count}` : ''}`)
       return
     }
+    delete env[FUNCTION_COVERAGE_ENV]
     const v8Module = await importV8Provider(vitest.config.root)
     this.inner = await v8Module.getProvider()
     await this.inner!.initialize(vitest)

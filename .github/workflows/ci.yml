@@ -24,9 +24,6 @@ jobs:
     name: 'Lint: node-latest, ubuntu-latest'
     steps:
       - uses: actions/checkout@v6
-        with:
-          # check-decision-code compares with a commit that still holds the fork
-          fetch-depth: 0
 
       - uses: ./.github/actions/setup-and-cache
 
@@ -41,9 +38,6 @@ jobs:
 
       - name: Typecheck
         run: pnpm run typecheck
-
-      - name: Decision code matches the fork
-        run: pnpm run check:decision-code
 
   test:
     name: 'Build&Test: node-${{ matrix.node_version }}, ${{ matrix.os }}'

@@ -1,12 +1,11 @@
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { join } from 'node:path'
 import { afterEach, expect, test } from 'vitest'
 import { ESCAPES_META_KEY, TRUNCATED } from '../../../packages/vitest-faster/src/escapeRecord'
 import { FasterEscapes } from '../../../packages/vitest-faster/src/escapes'
-import { git, runVitest } from './repository'
+import { createRepository, runVitest } from './repository'
 
-const compat = resolve(import.meta.dirname, '..')
 const cleanup: string[] = []
 
 afterEach(() => {
@@ -14,21 +13,6 @@ afterEach(() => {
     rmSync(directory, { recursive: true, force: true })
   }
 })
-
-function createRepository(files: Record<string, string>) {
-  const fixtures = join(compat, 'fixtures')
-  mkdirSync(fixtures, { recursive: true })
-  const root = mkdtempSync(join(fixtures, 'escapes-'))
-  cleanup.push(root)
-  for (const [file, content] of Object.entries(files)) {
-    mkdirSync(join(root, file, '..'), { recursive: true })
-    writeFileSync(join(root, file), content)
-  }
-  git(root, 'init', '-q')
-  git(root, 'add', '.')
-  git(root, 'commit', '-qm', 'init')
-  return root
-}
 
 async function runFaster(root: string, safety?: string, args: string[] = []): Promise<{ files: string[]; output: string }> {
   const { files, output } = await runVitest(root, { CI: '', VITEST_FASTER_OPTIONS: safety ? JSON.stringify({ safety }) : '' }, args)
@@ -104,7 +88,7 @@ test.skipIf(!existsSync('dist/gate.txt'))('runs once the gate exists', () => {})
 }
 
 test.for([{ isolate: true }, { isolate: false }])('records what each test file did outside its worker (%o)', async (options) => {
-  const root = createRepository({ ...project, 'vitest.config.mjs': config(options) })
+  const root = createRepository('escapes-', { ...project, 'vitest.config.mjs': config(options) })
   expect((await runFaster(root)).files).toEqual(['built.test.js', 'gated.test.js', 'in-process.test.js', 'opened.test.js', 'process.test.js', 'pure.test.js', 'remote.test.js'])
   expect(summarize(readEscapes(root) as Records)).toMatchInlineSnapshot(`
     {
@@ -163,7 +147,7 @@ test.for([{ isolate: true }, { isolate: false }])('records what each test file d
 
 // VM pools bind the builtins' named exports before any setup file runs, so most `fs` reads there go unseen.
 test('records processes and connections under VM pools', async () => {
-  const root = createRepository({ ...project, 'vitest.config.mjs': config({ pool: 'vmThreads' }) })
+  const root = createRepository('escapes-', { ...project, 'vitest.config.mjs': config({ pool: 'vmThreads' }) })
   await runFaster(root)
   const records = summarize(readEscapes(root) as Records)
   expect(Object.fromEntries(Object.entries(records).map(([file, { opaque }]) => [file, opaque]))).toMatchInlineSnapshot(`
@@ -185,7 +169,7 @@ test('records processes and connections under VM pools', async () => {
 })
 
 test('strict runs files that left their worker; reads select in every mode', async () => {
-  const root = createRepository(project)
+  const root = createRepository('escapes-', project)
   await runFaster(root)
 
   const fast = await runFaster(root, 'fast')
@@ -213,7 +197,7 @@ test('strict runs files that left their worker; reads select in every mode', asy
 })
 
 test('a run of only some tests adds to a file\'s escapes instead of replacing them', async () => {
-  const root = createRepository(project)
+  const root = createRepository('escapes-', project)
   await runFaster(root)
   await runVitest(root, { CI: '', VITEST_FASTER_OPTIONS: JSON.stringify({ selectAffected: false }) }, ['-t', 'sync'])
   expect(summarize(readEscapes(root) as Records)[':test/process.test.js']).toMatchInlineSnapshot(`
@@ -230,7 +214,7 @@ test('a run of only some tests adds to a file\'s escapes instead of replacing th
 })
 
 test('a server another test file left running is outside the current file', async () => {
-  const root = createRepository({
+  const root = createRepository('escapes-', {
     '.gitignore': 'node_modules\n',
     'vitest.config.mjs': `import { faster } from 'vitest-faster'
 class Alphabetical {
@@ -304,7 +288,7 @@ test('a file changed while the run read it selects the test next time', async ()
 })
 
 test('safety off records nothing and selects by imports alone', async () => {
-  const root = createRepository(project)
+  const root = createRepository('escapes-', project)
   await runFaster(root, 'off')
   expect(existsSync(join(root, '.git/faster/node_modules/.vite/vitest'))).toBe(true)
   expect(readEscapes(root)).toEqual({})

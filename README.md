@@ -4,8 +4,8 @@ FASTER test prioritization and selection for upstream Vitest 4.0, 4.1 and 5,
 as a Vite plugin.
 
 FASTER started as a fork of Vitest. This repository now holds only the plugin,
-which runs the fork's decision code unchanged on Vitest's public extension
-points, and the suite that shows the plugin makes the fork's decisions.
+which runs the fork's decision code on Vitest's public extension points, and
+the suite that shows the plugin makes the fork's decisions.
 
 ## What it does
 
@@ -78,28 +78,17 @@ sequencers and runners, and where function-level relevance does not apply.
 [`examples/faster-demo`](./examples/faster-demo) is a small project that makes
 the ordering visible.
 
-## How we check that the plugin is the fork
-
-The plugin is meant to be the code the FASTER evaluation ran, not a
-reimplementation. Three checks back that up.
-
-### The decision code is the fork's
+## How we check that the plugin makes the fork's decisions
 
 `packages/vitest-faster/src/decision` holds the fork's decision code: the
 ordering, selection, change and function-level relevance, and per-test
-ordering. These files were moved from the fork's `packages/vitest` and
-`packages/runner` and differ from them only in the module specifiers of their
-imports.
+ordering. It was moved from the fork's `packages/vitest` and
+`packages/runner`. Since then it stores what it records more compactly (see
+[History](./packages/vitest-faster/README.md#what-the-plugin-changes-in-your-setup)),
+and two checks make sure it still decides as the fork the FASTER evaluation
+ran.
 
-```bash
-pnpm check:decision-code
-```
-
-compares every file with its origin at `3e78239dc`, the last commit that
-holds the fork, and lists each changed specifier. `FASTER_FORK_REF` or an
-argument picks another commit. `test/faster-compat` runs the same check.
-
-### The plugin makes the fork's decisions
+### On the suite's scenarios
 
 `test/faster-compat` runs the same scenarios on five standalone installs
 under `hosts/`, set up outside the workspace as a user would install them:
@@ -118,8 +107,9 @@ compares each plugin host with the fork:
 
 - the test files and tests that ran, in the order they started;
 - the exit code;
-- FASTER's persisted state, with structural hashes replaced by ordinals
-  because they embed each install's paths;
+- FASTER's persisted state, expanded from the plugin's compact layout into
+  the fork's, with structural hashes replaced by ordinals because they embed
+  each install's paths;
 - whether coverage reports were written.
 
 ```bash
@@ -131,7 +121,7 @@ The first run builds the fork, which takes a few minutes and needs Node
 ^20.19.0 or >=22.12.0; later runs reuse the tarball cached in
 `test/faster-compat/.fork`.
 
-### The same holds on real commits
+### On real commits
 
 `test/faster-compat/holdout` replays 10 real revisions of Vue core and VueUse
 through the fork and through Vitest 4.1.7 with the plugin. It compares the

@@ -5,11 +5,10 @@ files by previous failures and by source changes, checked down to the
 functions each test called, then by prior duration and file size. With
 `selectAffected` it runs only edited, affected, unknown and failing test files.
 
-The plugin runs the FASTER fork's own decision code on Vitest's public
-extension points. The code lives in `src/decision`, identical to the fork's
-except for import specifiers. On the same inputs the plugin makes the fork's
-decisions: same files, same order, same tests inside each file, same
-selection. `test/faster-compat` in the FASTER repository checks this on every
+The plugin runs the FASTER fork's decision code on Vitest's public extension
+points. The code lives in `src/decision`. On the same inputs the plugin makes
+the fork's decisions: same files, same order, same tests inside each file,
+same selection. `test/faster-compat` in the FASTER repository checks this on every
 supported Vitest release.
 
 ## Which setup to use
@@ -146,8 +145,11 @@ A project without the plugin behaves like `faster: false` in the fork.
 
 - **Coverage.** Function-level relevance needs V8 coverage. Without your own
   coverage settings, the plugin enables V8 collection only, with no reports;
-  temporary files go to Vitest's cache directory. With your own V8 coverage
-  settings, reports and thresholds work as before. With Istanbul or a custom
+  temporary files go to Vitest's cache directory. Workers then count function
+  calls without block coverage, which is all FASTER reads and cheaper to
+  collect; to do so, each project's workers start your V8 provider through
+  the plugin's coverage module. With your own V8 coverage settings, reports
+  and thresholds work as before. With Istanbul or a custom
   provider, the plugin leaves coverage alone and FASTER uses dependency-level
   relevance, as the fork does.
 - **Sequencer.** FASTER orders the files unless you configured
@@ -157,7 +159,12 @@ A project without the plugin behaves like `faster: false` in the fork.
   Vitest's default runner. Projects with their own `runner` keep it and skip
   per-test priorities, with a warning.
 - **History.** FASTER keeps its own `faster-results.json` and
-  `faster-sources.json`. When Vitest's root is the top of a Git worktree,
+  `faster-sources.json.br`. The latter holds the hash of every source each
+  test file loaded and the functions it called; each source version and
+  function model is stored once, and the file is Brotli-compressed JSON, so
+  it stays well under a megabyte for suites of hundreds of files. It
+  replaces `faster-sources.json` of earlier versions, which is deleted and
+  whose history is not carried over. When Vitest's root is the top of a Git worktree,
   they live in that worktree's Git directory (`.git/faster/` in the main
   worktree, `.git/worktrees/<name>/faster/` in a linked one), so each
   worktree keeps its own history and `git worktree remove` deletes it. A

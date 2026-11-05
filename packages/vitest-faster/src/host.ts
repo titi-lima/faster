@@ -23,7 +23,7 @@ import {
 import { FasterEscapes, resolveSafety } from './escapes'
 import { FasterResults } from './results'
 import { createHostSequencer } from './sequencer'
-import { fileKey, markFasterStateDirCleared, resolveFasterStateDir, seedFasterStateDir } from './stateFile'
+import { fileKey, markFasterStateDirCleared, removeLegacyFasterState, resolveFasterStateDir, seedFasterStateDir } from './stateFile'
 
 export const PLUGIN_NAME = 'vitest-faster'
 export const PRIORITIES_KEY = '__vitestFasterPriorities'
@@ -253,7 +253,8 @@ export class FasterHost {
     const cacheDir = vitest.config.cache === false ? undefined : (vitest.config.cache as any).dir
     this.stateDir = cacheDir ? resolveFasterStateDir(vitest.config.root, cacheDir) : undefined
     if (this.stateDir) {
-      await seedFasterStateDir(this.stateDir)
+      // Only this worktree's own directories: the main worktree's history is the main worktree's to clean.
+      await Promise.all([seedFasterStateDir(this.stateDir), removeLegacyFasterState([this.stateDir.dir, cacheDir])])
     }
     this.results.configure(vitest.config.root, this.stateDir?.dir)
     this.escapes.configure(vitest.config.root, this.stateDir?.dir)
@@ -314,10 +315,14 @@ export class FasterHost {
       }
       rootCoverage.reportsDirectory = reportsDirectory
     }
-    // Workers keep the user's V8 provider, so they send the exact payload the fork records.
+    const customProviderModule = fileURLToPath(new URL('./coverage.js', import.meta.url))
+    // Workers run the user's V8 provider. Without user coverage, nothing reports
+    // it, so they start it through FASTER's module, which skips block coverage.
     for (const [project, coverage] of projectCoverage) {
       if (project.config !== root) {
-        ;(project.config as any).coverage = coverage
+        ;(project.config as any).coverage = !userCoverage.enabled && coverage.enabled && !project.isBrowserEnabled()
+          ? { ...coverage, provider: 'custom', customProviderModule }
+          : coverage
       }
     }
     // The root provider is the only node-side hook that receives worker coverage.
@@ -325,7 +330,7 @@ export class FasterHost {
       ...rootCoverage,
       enabled: true,
       provider: 'custom',
-      customProviderModule: fileURLToPath(new URL('./coverage.js', import.meta.url)),
+      customProviderModule,
     }
   }
 
