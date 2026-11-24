@@ -143,7 +143,10 @@ base is on the trusted branch. A test is skipped when:
 A test that has never run is skipped when every file it imports is on the
 trusted branch. Any other test is selected as without the option, by
 function-level relevance, so the option never selects more tests. Without a
-remote-tracking ref, or with `CI` set, nothing is trusted.
+remote-tracking ref nothing is trusted. With `CI` set the default is `false`,
+but a branch you set in the configuration applies on CI too, where a build of
+that branch itself would trust every file and run nothing; use
+`trustedBranch: process.env.CI ? false : 'main'` there.
 
 ### Projects
 

@@ -28,7 +28,7 @@ async function run(root: string, env: Record<string, string> = {}) {
 
 function commitOnTrustedBranch(root: string, files: Record<string, string>) {
   write(root, files)
-  git(root, 'add', '.')
+  git(root, 'add', ...Object.keys(files))
   git(root, 'commit', '-qm', 'upstream')
   git(root, 'update-ref', 'refs/remotes/origin/main', 'HEAD')
 }
@@ -143,4 +143,13 @@ test('treats a file a test read like one of its sources', async () => {
 
   write(root, { 'data/value.txt': '1 from me' })
   expect((await run(root)).files).toEqual(['read.test.js'])
+})
+
+test('runs a test that already ran with a change of mine when the trusted branch changes code it calls', async () => {
+  const root = await repositoryWithHistory()
+  write(root, { 'src/helper.js': values['src/helper.js'].replace('return 2', 'return 1 + 1') })
+  expect((await run(root, untrusted)).files).toEqual(['right.test.js'])
+
+  commitOnTrustedBranch(root, { 'src/value.js': values['src/value.js'].replace('return two() }', 'return two() * 1 }') })
+  expect((await run(root)).files).toEqual(['right.test.js'])
 })
