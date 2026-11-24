@@ -2,7 +2,8 @@ import type { FasterOptions } from './decision/priorityManifest'
 import { resolve } from 'pathe'
 
 const BOOLEAN_KEYS = new Set(['enabled', 'selectAffected', 'immediateFailureOutput'])
-const VALUE_KEYS = new Set(['optimizeFor', 'priorityFile', 'safety'])
+const VALUE_KEYS = new Set(['optimizeFor', 'priorityFile', 'safety', 'trustedBranch'])
+const DISABLED_BY_FALSE = new Set(['trustedBranch'])
 const OPTIONAL_VALUE_KEYS = new Set(['changed'])
 
 /**
@@ -36,7 +37,10 @@ export function extractFasterArguments(argv: string[]): { options: FasterOptions
     else if (value == null && (VALUE_KEYS.has(key) || OPTIONAL_VALUE_KEYS.has(key)) && argv[index + 1] && !argv[index + 1].startsWith('-')) {
       value = argv[++index]
     }
-    if (VALUE_KEYS.has(key)) {
+    if (DISABLED_BY_FALSE.has(key) && (value === false || value === 'false')) {
+      ;(options as any)[key] = false
+    }
+    else if (VALUE_KEYS.has(key)) {
       if (typeof value !== 'string') {
         throw new TypeError(`--faster.${key} requires a value`)
       }

@@ -43,6 +43,7 @@ export interface FasterOptions {
    * @default 'auto'
    */
   safety?: 'auto' | 'strict' | 'fast' | 'off'
+  trustedBranch?: string | false
 }
 
 /**

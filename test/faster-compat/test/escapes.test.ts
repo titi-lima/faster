@@ -275,16 +275,16 @@ test('a file changed while the run read it selects the test next time', async ()
   } as any
   await escapes.update([file])
   expect(escapes.get('p:a.test.js')!.opaque).toEqual([{ kind: 'file', target: TRUNCATED }])
-  expect(await escapes.changedReads(['p:a.test.js'])).toEqual(new Set())
+  expect((await escapes.changedReads(['p:a.test.js'])).changed).toEqual(new Set())
 
   await escapes.capture(['p:a.test.js'])
   writeFileSync(data, 'two')
   await escapes.update([file])
-  expect(await escapes.changedReads(['p:a.test.js'])).toEqual(new Set(['p:a.test.js']))
+  expect((await escapes.changedReads(['p:a.test.js'])).changed).toEqual(new Set(['p:a.test.js']))
 
   await escapes.capture(['p:a.test.js'])
   await escapes.update([file])
-  expect(await escapes.changedReads(['p:a.test.js'])).toEqual(new Set())
+  expect((await escapes.changedReads(['p:a.test.js'])).changed).toEqual(new Set())
 })
 
 test('safety off records nothing and selects by imports alone', async () => {

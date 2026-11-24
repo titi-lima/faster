@@ -11,7 +11,7 @@ import { brotliCompress, brotliDecompress, constants as zlib } from 'node:zlib'
 import { relative, resolve } from 'pathe'
 import { FASTER_SOURCES_FILE, writeFasterStateFile } from '../stateFile'
 import { hash } from './hash'
-import { getTestDependencies } from './affectedTests'
+import { getImportsOutside, getTestDependencies } from './affectedTests'
 import { collectFasterFunctionSnapshots, isFunctionDependencyAffected, resetFasterFunctionCoverage } from './functionCoverage'
 import { getOrCreate } from './getOrCreate'
 
@@ -66,6 +66,20 @@ export interface FasterSourceChange {
   changed: boolean
   testChanged: boolean
   changedDependencies: number
+  trusted: boolean
+}
+
+export interface TrustedBranchBase {
+  trusts: (filepath: string) => boolean
+}
+
+export interface TrustedBranch {
+  base: () => Promise<TrustedBranchBase | undefined>
+}
+
+export interface TrustedChanges {
+  branch: TrustedBranch
+  readsChangedOnBranch: (specification: TestSpecification) => boolean
 }
 
 export async function findTestsAffectedSinceLastRun(
@@ -79,6 +93,7 @@ export async function findTestsAffectedSinceLastRun(
 export async function getTestSourceChanges(
   vitest: Vitest,
   specifications: TestSpecification[],
+  trustedChanges?: TrustedChanges,
 ): Promise<Map<TestSpecification, FasterSourceChange>> {
   const state = await readSharedState(getStatePath(vitest))
   const sources = createSourceCache()
@@ -87,27 +102,83 @@ export async function getTestSourceChanges(
     const current = previous
       ? await readSnapshot(specification, Object.keys(previous), sources)
       : undefined
-    return [specification, previous, current] as const
-  }))
-
-  const changes = new Map<TestSpecification, FasterSourceChange>()
-  await Promise.all(comparisons.map(async ([specification, previous, current]) => {
-    const ownPath = slash(relative(specification.project.config.root, specification.moduleId))
     const changedPaths = previous && current
       ? Object.keys(previous).filter(path => previous[path] !== current[path])
       : []
-    const functions = getTest(state, specification)?.functions
-    const changedDependencies = (await Promise.all(changedPaths.filter(path => path !== ownPath).map(path =>
-      isFunctionDependencyAffected(specification.project, path, functions?.[path]),
-    ))).filter(Boolean).length
-    changes.set(specification, {
-      known: Boolean(previous),
-      changed: changedPaths.includes(ownPath) || changedDependencies > 0,
-      testChanged: changedPaths.includes(ownPath),
-      changedDependencies,
-    })
+    return [specification, previous, changedPaths] as const
+  }))
+  const trusted = trustedChanges && comparisons.some(([specification, previous, changedPaths]) =>
+    !previous || changedPaths.length || trustedChanges.readsChangedOnBranch(specification))
+    ? await trustedChanges.branch.base()
+    : undefined
+
+  const changes = new Map<TestSpecification, FasterSourceChange>()
+  await Promise.all(comparisons.map(async ([specification, previous, changedPaths]) => {
+    const sinceLastRun = await getChangeSinceLastRun(specification, previous, changedPaths, getTest(state, specification)?.functions)
+    const selectedSinceLastRun = !previous || sinceLastRun.changed || trustedChanges?.readsChangedOnBranch(specification)
+    const unaffectedOnBranch = trusted && selectedSinceLastRun
+      && await isUnaffectedOnBranch(specification, previous, changedPaths, trusted, sources)
+    changes.set(specification, unaffectedOnBranch
+      ? { known: Boolean(previous), changed: false, testChanged: false, changedDependencies: 0, trusted: true }
+      : sinceLastRun)
   }))
   return changes
+}
+
+async function getChangeSinceLastRun(
+  specification: TestSpecification,
+  previous: SourceSnapshot | undefined,
+  changedPaths: string[],
+  functions: Record<string, FunctionSnapshot> | undefined,
+): Promise<FasterSourceChange> {
+  const ownPath = slash(relative(specification.project.config.root, specification.moduleId))
+  const changedDependencies = (await Promise.all(changedPaths.filter(path => path !== ownPath).map(path =>
+    isFunctionDependencyAffected(specification.project, path, functions?.[path]),
+  ))).filter(Boolean).length
+  return {
+    known: Boolean(previous),
+    changed: changedPaths.includes(ownPath) || changedDependencies > 0,
+    testChanged: changedPaths.includes(ownPath),
+    changedDependencies,
+    trusted: false,
+  }
+}
+
+async function isUnaffectedOnBranch(
+  specification: TestSpecification,
+  previous: SourceSnapshot | undefined,
+  changedPaths: string[],
+  branch: TrustedBranchBase,
+  sources: SourceCache,
+): Promise<boolean> {
+  const root = specification.project.config.root
+  const absolutePaths = getOrCreate(sources.absolutePaths, root, () => new Map<string, string>())
+  const isOnBranch = (filepath: string) => getOrCreate(sources.onBranch, filepath, () => branch.trusts(filepath))
+  const isPathOnBranch = (path: string) => isOnBranch(getOrCreate(absolutePaths, path, () => resolve(root, path)))
+  if (!changedPaths.every(isPathOnBranch)) {
+    return false
+  }
+  const graph = previous
+    ? Object.keys(previous).every(isPathOnBranch) && await getImportsAddedOnBranch(specification, previous, changedPaths, sources)
+    : await getTestDependencies(specification, new Set(), sources.imports).then(
+        dependencies => [...dependencies, specification.moduleId],
+        () => undefined,
+      )
+  return Boolean(graph && graph.every(isOnBranch))
+}
+
+async function getImportsAddedOnBranch(
+  specification: TestSpecification,
+  previous: SourceSnapshot,
+  changedOnBranch: string[],
+  sources: SourceCache,
+): Promise<string[] | undefined> {
+  const root = specification.project.config.root
+  const relativePaths = getOrCreate(sources.relativePaths, root, () => new Map<string, string>())
+  const absolutePaths = getOrCreate(sources.absolutePaths, root, () => new Map<string, string>())
+  const isRecorded = (filepath: string) => Object.hasOwn(previous, getOrCreate(relativePaths, filepath, () => slash(relative(root, filepath))))
+  const roots = changedOnBranch.map(path => getOrCreate(absolutePaths, path, () => resolve(root, path)))
+  return getImportsOutside(specification, roots, isRecorded, sources.imports).then(added => [...added], () => undefined)
 }
 
 const pendingCaptures = new WeakMap<Vitest, Promise<void>>()
@@ -225,10 +296,11 @@ interface SourceCache {
   relativePaths: Map<string, Map<string, string>>
   absolutePaths: Map<string, Map<string, string>>
   imports: TestImportCache
+  onBranch: Map<string, boolean>
 }
 
 function createSourceCache(): SourceCache {
-  return { hashes: new Map(), pending: new Map(), relativePaths: new Map(), absolutePaths: new Map(), imports: new WeakMap() }
+  return { hashes: new Map(), pending: new Map(), relativePaths: new Map(), absolutePaths: new Map(), imports: new WeakMap(), onBranch: new Map() }
 }
 
 async function createSnapshot(

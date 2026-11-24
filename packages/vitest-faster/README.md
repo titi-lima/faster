@@ -114,12 +114,39 @@ them, so a fork configuration works unchanged once the plugin is added.
 | `priorityFile` | `.faster/priorities.json` | optional producer scores, per file or per test (`file::suite::test`) |
 | `immediateFailureOutput` | — | accepted for parity with the fork; the plugin leaves Vitest's reporters unchanged |
 | `safety` | `'auto'` | how selection treats files that left their worker in their last run (see below); `'auto'` is `'strict'` on CI and `'fast'` elsewhere |
+| `trustedBranch` | the remote's default branch; `false` on CI | with `selectAffected`, skip tests whose changes since their last run all come from this branch (see below); `false` turns it off |
 
 CLI flags (with `npx vitest-faster`): `--faster.selectAffected`,
 `--faster.optimizeFor=apfd`, `--faster.changed[=<revision>]`,
-`--faster.priorityFile=<path>`, `--faster.safety=strict`, `--no-faster`. They override every project's
+`--faster.priorityFile=<path>`, `--faster.safety=strict`,
+`--faster.trustedBranch=<branch>`, `--no-faster.trustedBranch`, `--no-faster`. They override every project's
 options. `VITEST_FASTER_OPTIONS='{"selectAffected":true}'` does the same
 without the wrapper.
+
+### Trusted branch
+
+FASTER compares each test with its own last run, so changes that others
+merged into the main branch select tests too, in every checkout, until each
+one runs them. `trustedBranch` treats code that matches the main branch as
+already tested by its CI.
+
+The plugin uses the branch's remote-tracking ref (`origin/main` for
+`main`), which is the code CI ran and costs no network call, and compares the
+working tree with its merge base with `HEAD`. A file that matches the merge
+base is on the trusted branch. A test is skipped when:
+
+- every source that changed since its last run, and every file it read that
+  changed, is on the trusted branch, and
+- every file it imports now, including imports those changes added, is on
+  the trusted branch.
+
+A test that has never run is skipped when every file it imports is on the
+trusted branch. Any other test is selected as without the option, by
+function-level relevance, so the option never selects more tests. Without a
+remote-tracking ref nothing is trusted. With `CI` set the default is `false`,
+but a branch you set in the configuration applies on CI too, where a build of
+that branch itself would trust every file and run nothing; use
+`trustedBranch: process.env.CI ? false : 'main'` there.
 
 ### Projects
 

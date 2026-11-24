@@ -72,3 +72,27 @@ test('rejects unknown and malformed --faster flags', () => {
   expect(() => extractFasterArguments(['--faster.selectAffected=maybe'])).toThrowErrorMatchingInlineSnapshot(`[TypeError: --faster.selectAffected expects true or false, received "maybe"]`)
   expect(() => extractFasterArguments(['--faster.optimizeFor'])).toThrowErrorMatchingInlineSnapshot(`[TypeError: --faster.optimizeFor requires a value]`)
 })
+
+test('reads a trusted branch name or false', () => {
+  expect([
+    extractFasterArguments(['--faster.trustedBranch=develop']).options,
+    extractFasterArguments(['--faster.trustedBranch', 'develop']).options,
+    extractFasterArguments(['--faster.trustedBranch=false']).options,
+    extractFasterArguments(['--no-faster.trustedBranch']).options,
+  ]).toMatchInlineSnapshot(`
+    [
+      {
+        "trustedBranch": "develop",
+      },
+      {
+        "trustedBranch": "develop",
+      },
+      {
+        "trustedBranch": false,
+      },
+      {
+        "trustedBranch": false,
+      },
+    ]
+  `)
+})
