@@ -1,5 +1,6 @@
 import type { RunnerTask } from 'vitest'
 import type { RunnerTestFile } from 'vitest/node'
+import type { TrustedBranch } from './decision/sourceChanges'
 import type { ObservedEscape } from './escapeRecord'
 import { readdir, readFile } from 'node:fs/promises'
 import { isAbsolute, relative, resolve } from 'pathe'
@@ -85,17 +86,22 @@ export class FasterEscapes extends FasterStateStore<EscapeRecord> {
   }
 
   /** Keys of the recorded files that read a file whose content changed since. */
-  async changedReads(keys: string[]): Promise<Set<string>> {
+  async changedReads(keys: string[], branch?: TrustedBranch): Promise<{ changed: Set<string>; changedOnBranch: Set<string> }> {
     const hashes = new Map<string, Promise<string>>()
     const changed = new Set<string>()
+    const changedOnBranch = new Set<string>()
     await Promise.all(keys.map(async (key) => {
       const reads = Object.entries(this.records.get(key)?.reads ?? {})
       const current = await Promise.all(reads.map(([path]) => hashFile(hashes, resolve(this.root, path))))
-      if (reads.some(([, hash], index) => current[index] !== hash)) {
-        changed.add(key)
+      const changedReads = reads.filter(([, hash], index) => current[index] !== hash)
+      if (!changedReads.length) {
+        return
       }
+      const trusted = await branch?.base()
+      const onBranch = trusted && changedReads.every(([path, hash]) => hash !== CHANGED_DURING_RUN && trusted.trusts(resolve(this.root, path)))
+      ;(onBranch ? changedOnBranch : changed).add(key)
     }))
-    return changed
+    return { changed, changedOnBranch }
   }
 }
 

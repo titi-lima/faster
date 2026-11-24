@@ -80,6 +80,33 @@ export async function getTestDependencies(
   return dependencies
 }
 
+export async function getImportsOutside(
+  specification: TestSpecification,
+  roots: string[],
+  isKnown: (filepath: string) => boolean,
+  importCache: TestImportCache,
+): Promise<Set<string>> {
+  const project = specification.project
+  const imports = importCache.get(project) ?? new Map<string, Promise<string[]>>()
+  importCache.set(project, imports)
+  const outside = new Set<string>()
+  const visit = async (filepath: string): Promise<void> => {
+    let pending = imports.get(filepath)
+    if (!pending) {
+      pending = resolveTrackedImports(project, filepath)
+      imports.set(filepath, pending)
+    }
+    await Promise.all((await pending).map(async (child) => {
+      if (!outside.has(child) && !isKnown(child)) {
+        outside.add(child)
+        await visit(child)
+      }
+    }))
+  }
+  await Promise.all(roots.map(visit))
+  return outside
+}
+
 async function resolveTrackedImports(project: TestProject, filepath: string): Promise<string[]> {
   const environment = project.vite.environments.ssr
   const module = environment.moduleGraph.getModuleById(filepath)

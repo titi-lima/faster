@@ -1,9 +1,10 @@
 import type { Reporter, RunnerTestFile, TestProject, TestSpecification, Vitest } from 'vitest/node'
 import type { FasterOptions, ResolvedFasterOptions } from './decision/priorityManifest'
-import type { FasterSourceSnapshots } from './decision/sourceChanges'
+import type { FasterSourceChange, FasterSourceSnapshots } from './decision/sourceChanges'
 import type { FasterSafety } from './escapes'
 import type { HostSequencerOptions } from './sequencer'
 import type { FasterStateDir } from './stateFile'
+import type { TrustedBranchOption } from './trustedBranch'
 import { readFileSync } from 'node:fs'
 import { stat } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
@@ -12,6 +13,7 @@ import pm from 'picomatch'
 import { BaseSequencer } from 'vitest/node'
 import { GitNotFoundError } from './decision/errors'
 import { recordFasterFunctionCoverage } from './decision/functionCoverage'
+import { getOrCreate } from './decision/getOrCreate'
 import { GitVCSProvider } from './decision/git'
 import { resolveFasterOptions } from './decision/priorityManifest'
 import {
@@ -24,16 +26,17 @@ import { FasterEscapes, resolveSafety } from './escapes'
 import { FasterResults } from './results'
 import { createHostSequencer } from './sequencer'
 import { fileKey, markFasterStateDirCleared, removeLegacyFasterState, resolveFasterStateDir, seedFasterStateDir } from './stateFile'
+import { createTrustedBranch, resolveTrustedBranchOption } from './trustedBranch'
 
 export const PLUGIN_NAME = 'vitest-faster'
 export const PRIORITIES_KEY = '__vitestFasterPriorities'
 const REGISTRY = Symbol.for('vitest-faster.hosts')
 const MODULE_CACHE_COMMENT = '\n//# vitestCache='
 
-type FasterLayerOptions = FasterOptions & { safety?: unknown }
+type FasterLayerOptions = FasterOptions & { safety?: unknown; trustedBranch?: unknown }
 export type FasterLayer = boolean | FasterLayerOptions | undefined
 /** The fork's options for a project, plus the plugin's own `safety`. */
-type ResolvedOptions = ResolvedFasterOptions & { safety: FasterSafety }
+type ResolvedOptions = ResolvedFasterOptions & { safety: FasterSafety; trustedBranch: TrustedBranchOption }
 
 interface CoverageRole {
   /** Provider name the fork reads from `vitest._coverageOptions.provider`. */
@@ -128,6 +131,7 @@ export class FasterHost {
       resolved = {
         ...resolveFasterOptions(project.config.root, layers),
         safety: resolveSafety(typeof layers === 'object' ? layers.safety : undefined, isCI()),
+        trustedBranch: resolveTrustedBranchOption(typeof layers === 'object' ? layers.trustedBranch : undefined, isCI()),
       }
       this.resolved.set(project, resolved)
     }
@@ -372,16 +376,40 @@ export class FasterHost {
         return relevant
       }
       const key = (spec: TestSpecification) => fileKey(vitest.config.root, spec.project.name, spec.moduleId)
-      const [changes, changedReads] = await Promise.all([
-        getTestSourceChanges(this.context, tracked.map(spec => this.specification(spec))),
-        this.escapes.changedReads(tracked.filter(spec => this.faster(spec.project).safety !== 'off').map(key)),
-      ])
+      const changes = new Map<TestSpecification, FasterSourceChange>()
+      const changedReads = new Set<string>()
+      const changedReadsOnBranch = new Set<string>()
+      const trustedBranches: ReturnType<typeof createTrustedBranch>[] = []
+      await Promise.all([...groupByTrustedBranch(tracked, spec => this.faster(spec.project).trustedBranch)].map(async ([option, specs]) => {
+        const branch = option === false ? undefined : createTrustedBranch(vitest.config.root, option)
+        if (branch) {
+          trustedBranches.push(branch)
+        }
+        const reads = await this.escapes.changedReads(specs.filter(spec => this.faster(spec.project).safety !== 'off').map(key), branch)
+        reads.changed.forEach(id => changedReads.add(id))
+        reads.changedOnBranch.forEach(id => changedReadsOnBranch.add(id))
+        const facades = specs.map(spec => this.specification(spec))
+        const groupChanges = await getTestSourceChanges(this.context, facades, branch && {
+          branch,
+          readsChangedOnBranch: facade => reads.changedOnBranch.has(key(facade)),
+        })
+        specs.forEach((spec, index) => {
+          const change = groupChanges.get(facades[index])
+          if (change) {
+            changes.set(spec, change)
+          }
+        })
+      }))
+      let skippedOnBranch = 0
       const escaping: Record<'strict' | 'fast', string[]> = { strict: [], fast: [] }
       const selected = relevant.filter((spec) => {
         const id = key(spec)
-        const change = changes.get(this.specification(spec))
-        if (!change || !change.known || change.testChanged || change.changed || this.results.get(id)?.failed || changedReads.has(id)) {
+        const change = changes.get(spec)
+        if (!change || (!change.trusted && (!change.known || change.testChanged || change.changed)) || this.results.get(id)?.failed || changedReads.has(id) || (changedReadsOnBranch.has(id) && !change.trusted)) {
           return true
+        }
+        if (change.trusted) {
+          skippedOnBranch++
         }
         const safety = this.faster(spec.project).safety
         const opaque = this.escapes.get(id)?.opaque
@@ -392,8 +420,18 @@ export class FasterHost {
         return safety === 'strict'
       })
       this.reportEscaping(escaping)
+      await this.reportTrustedBranch(trustedBranches, skippedOnBranch)
       return selected
     }
+  }
+
+  private async reportTrustedBranch(branches: ReturnType<typeof createTrustedBranch>[], skipped: number): Promise<void> {
+    if (!skipped) {
+      return
+    }
+    const resolved = (await Promise.all(branches.map(branch => branch.resolved()))).filter(Boolean)
+    const names = resolved.map(branch => `${branch!.ref} at ${branch!.commit.slice(0, 9)}`).join(', ')
+    this.vitest.logger.log(`[${PLUGIN_NAME}] trusted ${names}: skipped ${skipped} test file(s) whose changes since their last run all come from it`)
   }
 
   private reportEscaping(escaping: Record<'strict' | 'fast', string[]>): void {
@@ -555,6 +593,14 @@ export function mergeLayers(layers: FasterLayer[] | undefined): boolean | Faster
 function isBuiltinSequencer(sequencer: unknown): boolean {
   return sequencer === BaseSequencer
     || (typeof sequencer === 'function' && sequencer.name === 'RandomSequencer' && Object.getPrototypeOf(sequencer) === BaseSequencer)
+}
+
+function groupByTrustedBranch(specifications: TestSpecification[], option: (specification: TestSpecification) => TrustedBranchOption): Map<TrustedBranchOption, TestSpecification[]> {
+  const groups = new Map<TrustedBranchOption, TestSpecification[]>()
+  for (const specification of specifications) {
+    getOrCreate(groups, option(specification), () => []).push(specification)
+  }
+  return groups
 }
 
 function isCI(): boolean {
